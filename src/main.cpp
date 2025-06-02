@@ -1,0 +1,251 @@
+#include <iostream>
+#include <string>
+#include <bitset>
+#include <chrono>
+#include <filesystem>
+
+// External Libraries
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+#include <SDL3_image/SDL_image.h>
+#include <Eigen/Dense>
+using namespace Eigen;
+
+// User define
+#include "engine/sprite.hpp"
+#include "engine/entity.hpp"
+#include "engine/camera.hpp"
+#include "core/input.hpp"
+#include "utils/util.hpp"
+
+// Constants
+#define FPS 60
+#define MS_PER_FRAME 1000 / FPS
+#define WIN_TITLE "Spright2D v.1.0"
+#define WIN_WIDTH 1000
+#define WIN_HEIGHT 720
+
+// Struct for handling state for each scene
+struct global_state {
+    /* States */
+};
+
+struct local_state {
+    /* States */
+};
+
+// Add Global variables, this variables are available to all scenes.
+const int GRAVITY = 5;
+
+// =========================== RESOURCES =====================================
+SDL_Window* win;
+SDL_Renderer* renderer;
+
+bool game_running = true;   // Stop or Continue Game loop
+bool invokeStart = true;    // Resets every Scene Change, on True call start
+float current_fps = 0.0f;   // Non-capped FPS
+Uint32 delta_time;          // Measured in Milliseconds
+Uint32 frame_count = 0;
+Uint32 frame_timer = 0;
+Camera camera = {
+    {-WIN_WIDTH/2, -WIN_HEIGHT/2},
+    {WIN_WIDTH, WIN_HEIGHT}
+};
+
+// Add scenes here
+enum SCENE_TYPE { 
+    BaseRoom 
+};
+SCENE_TYPE currentScene = BaseRoom;
+
+// Helper Functions
+void app_quit();
+
+// Initiate SDL3, Window, and Renderer
+void init() {
+
+    // Check current Directory
+    std::string cd = std::string("CWD: ") + std::filesystem::current_path().string();
+    SDL_Log(cd.c_str());
+
+    if (!SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO)) {
+        SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed SDL3 Initialization.");
+        app_quit();
+    }
+
+    win = SDL_CreateWindow(WIN_TITLE, WIN_WIDTH, WIN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY);
+    if (win == nullptr) {
+        SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "Failed to create a window kekw.");
+        app_quit();
+    }
+
+    SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
+    SDL_SetHint(SDL_HINT_RENDER_DIRECT3D_THREADSAFE, "1");
+
+    renderer = SDL_CreateRenderer(win, NULL);
+    if (renderer == nullptr) {
+        SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Failed to create renderer.");
+        app_quit();
+    }
+
+    // Initialization of System (Peak shit🙏🙏)
+    init_sprite_manager(renderer, true);   // Load all sprite_sheets
+    flip_event(DEBUG_MODE);                 // Initially start with debug mode
+
+    //  >>>> You wanna Generate some sprite_sheets? Do it below here. <<<<<<   
+    // generate_sprite_sheet("dir", "spr_output_0.png");
+}
+
+// FPS and shits
+void config_sprite() {
+    sprite_get("enemy").fps = 6;
+}
+
+void load_entities() {
+    // Base Scene
+    entity_spawn("player", {150, 300}, {1, 1}, 0, 100);
+}
+
+
+// Scene start ====================================================================
+void start() { 
+    /* CODE */
+}
+
+// Runs per frame =====================================================================
+void update(global_state& gs, local_state& ls) {
+    /* CODE */
+    Vector2f m_w = screen_to_world(camera, mouse_pos());
+    
+    if (is_event_active(MOUSE_LEFT_PRESSED)) {
+        Entity& e = entity_get(0);
+        e.position = {m_w.x() - e.center_pivot().x(), m_w.y() - e.center_pivot().y()};
+    }
+
+    float cam_spd = 5;
+    if (check_key(SDL_SCANCODE_W)) camera.move({0       ,  -cam_spd });
+    if (check_key(SDL_SCANCODE_A)) camera.move({-cam_spd,  0        });
+    if (check_key(SDL_SCANCODE_S)) camera.move({0       ,  cam_spd  });
+    if (check_key(SDL_SCANCODE_D)) camera.move({cam_spd ,  0        });
+
+    // TEST Spawn on mouse position
+    if (check_key_pressed(SDL_SCANCODE_E)) {
+        entity_spawn("enemy", {m_w.x(), m_w.y()}, {1, 1}, 0, 100);
+    }
+}
+
+// Renders Drawable Objects ===========================================================
+void render(SDL_Renderer* rend, global_state gs, local_state ls) {
+    /* CODE (Always white on start) */
+    draw_sprite_raw("player", 0, 45, {200, 200, 200, 200});
+}
+
+// Debug shit
+void debug_draw(SDL_Renderer* rend) {
+    if (!is_event_active(DEBUG_MODE)) return;
+    SDL_RenderDebugTextFormat(rend, 20, 20, "FPS: %.2f", current_fps);
+    SDL_RenderDebugTextFormat(rend, 20, 40, "Sprite Count: %d", sprite_count());
+    SDL_RenderDebugTextFormat(rend, 20, 60, "Entity Count: %d", entity_count());
+    SDL_RenderDebugTextFormat(rend, 20, 80, "Camera Position: %.2f : %.2f", camera.x(), camera.y());
+
+    // Vertical
+    Vector2f vl_s = world_to_screen(camera, {0, -10});
+    Vector2f vl_e = world_to_screen(camera, {0, 10});
+    SDL_RenderLine(rend, vl_s.x(), vl_s.y(), vl_e.x(), vl_e.y());
+
+    // Horizontal
+    Vector2f hl_s = world_to_screen(camera, {-10, 0});
+    Vector2f hl_e = world_to_screen(camera, {10, 0});
+    SDL_RenderLine(rend, hl_s.x(), hl_s.y(), hl_e.x(), hl_e.y());
+}
+
+
+
+
+
+// ============================ MAIN =============================== //
+
+int main(int argc, char* argv[]) {
+    SDL_Log("Application starting...");
+    init();
+
+    global_state gs = {};
+    local_state ls = {};
+
+    Uint64 previous = SDL_GetTicks();
+    Uint64 lag = 0.0;
+
+    Uint64 before = SDL_GetTicks();
+    load_entities();
+    config_sprite();
+    SDL_Log("Time to load: %d ms.", SDL_GetTicks() - before);
+
+    // Game Loop
+    while (game_running)
+    {
+        Uint64 frame_start = SDL_GetTicks();
+
+        // Start event
+        if (invokeStart) {
+            start();
+            invokeStart = false;
+        }
+
+        Uint64 current = SDL_GetTicks();
+        delta_time = current - previous;
+        previous = current;
+        lag += delta_time;
+
+        // Lag Compensation
+        game_running = input_handle_event();
+        while (lag >= MS_PER_FRAME)
+        {
+            update(gs, ls);          // Per frame
+            lag -= MS_PER_FRAME; 
+        }
+ 
+        // Entities rendering
+        sprite_batch_clear();
+        for (auto& [key, value] : entity_get_map()) {
+            value.submit_vertices(renderer, camera);
+        }
+
+        // Rendering
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Always reset back to white
+
+        debug_draw(renderer);
+        render(renderer, gs, ls);
+        
+        // Renders all vertex buffers with texture i.e, An Entity lol
+        sprite_batch_draw_all();
+        SDL_RenderPresent(renderer); 
+
+        // Frame time
+        Uint64 frame_end = SDL_GetTicks();
+        Uint64 frame_time = frame_end - frame_start;
+
+        frame_count++;
+        frame_timer += frame_time;
+        if (frame_timer >= 1000) {
+            current_fps = (frame_count * 1000 / frame_timer);
+            frame_count = 0;
+            frame_timer = 0;
+        }
+
+    }
+
+    app_quit();
+    return EXIT_SUCCESS;
+}
+
+// System CLean-up
+void app_quit() {
+    sprite_cleanup();
+    if (win != nullptr) SDL_DestroyWindow(win);
+    if (renderer != nullptr) SDL_DestroyRenderer(renderer);
+
+    SDL_Log("Exiting program...");
+    SDL_Quit();
+}

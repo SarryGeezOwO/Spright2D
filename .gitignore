@@ -1,0 +1,14 @@
+.vscode/
+
+# misc files
+TODO.txt
+
+# build files
+bin/Spright2D.exe
+bin/Texture_atlas.png
+bin/temp/
+
+# Ignore C++ object files
+obj/
+*.obj
+*.o
