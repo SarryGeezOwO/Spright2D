@@ -5,6 +5,37 @@
 #include <vector>
 #include <regex>
 #include "util.hpp"
+#include <Eigen/Dense>
+using namespace Eigen;
+
+#define PI SDL_PI_F
+
+float deg_to_rad(float deg) {
+    return deg * (PI / 180.0f);
+}
+
+float rad_to_deg(float rad) {
+    return rad * (180.0f / PI);
+}
+
+Vector2f get_pivot_offset(Pivot_Type pivot_type, const Vector2f& size) {
+    float x = 0.0f;
+    float y = 0.0f;
+
+    switch (pivot_type) {
+        case TOP_LEFT:        x = 0.0f;     y = 0.0f; break;
+        case TOP_CENTER:      x = 0.5f;     y = 0.0f; break;
+        case TOP_RIGHT:       x = 1.0f;     y = 0.0f; break;
+        case MIDDLE_LEFT:     x = 0.0f;     y = 0.5f; break;
+        case MIDDLE_CENTER:   x = 0.5f;     y = 0.5f; break;
+        case MIDDLE_RIGHT:    x = 1.0f;     y = 0.5f; break;
+        case BOTTOM_LEFT:     x = 0.0f;     y = 1.0f; break;
+        case BOTTOM_CENTER:   x = 0.5f;     y = 1.0f; break;
+        case BOTTOM_RIGHT:    x = 1.0f;     y = 1.0f; break;
+    }
+
+    return Vector2f(x * size.x(), y * size.y());
+}
 
 void generate_sprite_sheet(const std::string dir_p, const std::string output) {
     // check for folder existance

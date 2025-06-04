@@ -3,6 +3,17 @@
 
 #include <SDL3/SDL.h>
 #include <string>
+#include <Eigen/Dense>
+using namespace Eigen;
+
+enum Pivot_Type {
+    TOP_LEFT, TOP_CENTER, TOP_RIGHT,
+    MIDDLE_LEFT, MIDDLE_CENTER, MIDDLE_RIGHT,
+    BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
+};
+
+// Returns the pivot offset of a given Pivot type...
+Vector2f get_pivot_offset(Pivot_Type pivot_type, const Vector2f& size);
 
 // Generates a sprite sheet from individual frames.
 //
@@ -25,5 +36,8 @@ void generate_sprite_sheet(const std::string dir_p, const std::string output);
 Uint32 extract_frame_count(const std::string& filename);
 
 std::string extract_sprite_name(const std::string& filename);
+
+float deg_to_rad(float deg);
+float rad_to_deg(float rad);
 
 #endif

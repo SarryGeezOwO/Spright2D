@@ -8,6 +8,8 @@
 #include <SDL3_image/SDL_image.h>
 using namespace Eigen;
 
+struct Entity;
+
 /* All sprites have Top-Left pivot points */
 
 struct Sprite_sheet_data {
@@ -36,14 +38,21 @@ Vector4f frame_at_uv(std::string sprite_id, Uint16 index);
 Sprite_sheet_data& sprite_get(std::string sprite_id);
 int sprite_count();
 
+// ============= GPU ==================== //
+
 // Draws directly from the GPU without batching
 void draw_sprite(std::string sprite_id, Uint8 index, float rotation, Camera const cam, SDL_FRect rect);
 
 // Draws directly from the GPU without batching
 void draw_sprite_raw(std::string sprite_id, Uint8 index, float rotation, SDL_FRect rect);
 
+// ============= Batching ==================== //
+
+// Insert an Entity to the rendering batch
+void batch_draw_entity(Entity& entity, Camera const cam);
+
 // Insert a sprite to be drawn in a depth batch
-void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation, Uint16 depth, std::array<Vector2f, 4>& vertices, Camera const cam);
+void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation, Vector2f scale, Uint16 depth, std::array<Vector2f, 4>& vertices, Camera const cam);
 
 // Draws all sprite loaded from the batch with all Depth value
 void sprite_batch_draw_all();

@@ -92,7 +92,7 @@ void init() {
     init_sprite_manager(renderer, true);   // Load all sprite_sheets
     flip_event(DEBUG_MODE);                 // Initially start with debug mode
 
-    //  >>>> You wanna Generate some sprite_sheets? Do it below here. <<<<<<   
+    //  >>>> You wanna Generate some sprite_sheets? Do it below. <<<<<<   
     // generate_sprite_sheet("dir", "spr_output_0.png");
 }
 
@@ -103,7 +103,7 @@ void config_sprite() {
 
 void load_entities() {
     // Base Scene
-    entity_spawn("player", {150, 300}, {1, 1}, 0, 200);
+    entity_spawn("player", {150, 300}, {2, 2}, 0, MIDDLE_CENTER, 200);
 }
 
 
@@ -119,8 +119,16 @@ void update(global_state& gs, local_state& ls) {
     
     if (is_event_active(MOUSE_LEFT_PRESSED)) {
         Entity& e = entity_get(0);
-        e.position = {m_w.x() - e.center_pivot().x(), m_w.y() - e.center_pivot().y()};
+        Vector2i h_size = e.sprite.frame_size / 2;
+        e.position.x() = m_w.x();
+        e.position.y() = m_w.y();
     }
+
+    if (check_key(SDL_SCANCODE_X)) entity_get(0).rotation += 2; 
+    if (check_key(SDL_SCANCODE_N)) entity_get(0).scale.x() += 0.1; 
+    if (check_key(SDL_SCANCODE_M)) entity_get(0).scale.y() += 0.1; 
+    if (check_key(SDL_SCANCODE_K)) entity_get(0).scale.x() -= 0.1; 
+    if (check_key(SDL_SCANCODE_L)) entity_get(0).scale.y() -= 0.1; 
 
     float cam_spd = 5;
     if (check_key(SDL_SCANCODE_W)) camera.move({0       ,  -cam_spd });
@@ -133,12 +141,7 @@ void update(global_state& gs, local_state& ls) {
     id = (check_key(SDL_SCANCODE_Q) ? "cat" : id);
 
     if (id != "none") {
-        entity_spawn(
-        id, {
-                m_w.x() - sprite_get(id).frame_size.x() / 2, 
-                m_w.y() - sprite_get(id).frame_size.y() / 2}, 
-            {1, 1}, 0, 100
-        );
+        entity_spawn(id, {m_w.x(), m_w.y()}, {1, 1}, 0, MIDDLE_CENTER, 100);
     }
 }
 
@@ -215,10 +218,9 @@ int main(int argc, char* argv[]) {
         // Entities rendering
         sprite_batch_clear();
         for (auto& [key, value] : entity_get_map()) {
-            
             value.update_vertices();
             value.update_frame(current);
-            value.submit_vertices(renderer, camera);
+            value.submit_vertices(camera);
         }
 
         // Rendering

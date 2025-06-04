@@ -1,5 +1,6 @@
 #include "sprite.hpp"
 #include "camera.hpp"
+#include "entity.hpp"
 #include "../utils/util.hpp"
 #include <SDL3/SDL.h>
 #include <Eigen/Dense>
@@ -323,8 +324,6 @@ void draw_sprite(std::string sprite_id, Uint8 index, float rotation,
     Vector2f r = world_to_screen(cam, {rect.x, rect.y});
     rect.x = r.x();
     rect.y = r.y();
-
-    Sprite_sheet_data data = sprite_get(sprite_id);
     SDL_FRect src = frame_at(sprite_id, index);
 
     SDL_RenderTextureRotated(
@@ -339,7 +338,6 @@ void draw_sprite(std::string sprite_id, Uint8 index, float rotation,
 
 
 void draw_sprite_raw(std::string sprite_id, Uint8 index, float rotation, SDL_FRect rect) {
-    Sprite_sheet_data data = sprite_get(sprite_id);
     SDL_FRect src = frame_at(sprite_id, index);
 
     SDL_RenderTextureRotated(
@@ -353,8 +351,73 @@ void draw_sprite_raw(std::string sprite_id, Uint8 index, float rotation, SDL_FRe
 }
 
 
+void add_quad_to_batch(Sprite_buffer& buf, SDL_Vertex v0, SDL_Vertex v1, SDL_Vertex v2, SDL_Vertex v3) {
+    Uint16& c   = buf.vert_count;
+    Uint16& i   = buf.index_count;
+
+    buf.indices[i++] = c + 0;
+    buf.indices[i++] = c + 1;
+    buf.indices[i++] = c + 2;
+    buf.indices[i++] = c + 2;
+    buf.indices[i++] = c + 3;
+    buf.indices[i++] = c + 0;
+
+    buf.vertices[c++] = v0;
+    buf.vertices[c++] = v1;
+    buf.vertices[c++] = v2;
+    buf.vertices[c++] = v3;
+    rendered_count++;
+}
+
+
+// Insert an Entity to the rendering batch
+void batch_draw_entity(Entity& entity, Camera const cam) {
+    // Should Draw?
+    int v_out = 0;
+    for (int i = 0; i < entity.transformed_vertices.size(); i++) {
+        if (camera_is_position_out(cam, entity.transformed_vertices[i])) v_out++;
+    }
+
+    SDL_Vertex v0, v1, v2, v3;
+    Vector2f tl = world_to_screen(cam, entity.transformed_vertices[0]);
+    Vector2f tr = world_to_screen(cam, entity.transformed_vertices[1]);
+    Vector2f br = world_to_screen(cam, entity.transformed_vertices[2]);
+    Vector2f bl = world_to_screen(cam, entity.transformed_vertices[3]);
+    Vector4f uv = frame_at_uv(entity.sprite.sprite_id, entity.image_index);
+
+    // Top left
+    v0.position.x = tl.x();
+    v0.position.y = tl.y();
+    v0.tex_coord.x = uv.x();
+    v0.tex_coord.y = uv.y();
+    v0.color = {1, 1, 1, 1}; 
+
+    // Top Right
+    v1.position.x = tr.x();
+    v1.position.y = tr.y();
+    v1.tex_coord.x = uv.z();
+    v1.tex_coord.y = uv.y();
+    v1.color = {1, 1, 1, 1};
+
+    // Bottom right
+    v2.position.x = br.x();
+    v2.position.y = br.y();
+    v2.tex_coord.x = uv.z();
+    v2.tex_coord.y = uv.w();
+    v2.color = {1, 1, 1, 1};
+    
+    // Bottom left
+    v3.position.x = bl.x();
+    v3.position.y = bl.y();
+    v3.tex_coord.x = uv.x();
+    v3.tex_coord.y = uv.w();
+    v3.color = {1, 1, 1, 1};
+    add_quad_to_batch(sprite_batch[entity.depth], v0, v1, v2, v3);
+}
+
+
 // Insert a sprite to be drawn in a depth batch
-void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation, 
+void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation, Vector2f scale, 
     Uint16 depth, std::array<Vector2f, 4>& vertices, Camera const cam) {
         
     // Should Draw?
@@ -372,6 +435,9 @@ void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation,
     Vector2f br = world_to_screen(cam, vertices[2]);
     Vector2f bl = world_to_screen(cam, vertices[3]);
     Vector4f uv = frame_at_uv(sprite_id, index);
+
+    // TODO: apply transformation matrix here (rotation and Scale)
+
 
     // Top left
     v0.position.x = tl.x();
@@ -400,23 +466,7 @@ void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation,
     v3.tex_coord.x = uv.x();
     v3.tex_coord.y = uv.w();
     v3.color = {1, 1, 1, 1};
-
-    Sprite_buffer& buf = sprite_batch[depth];
-    Uint16& c   = buf.vert_count;
-    Uint16& i   = buf.index_count;
-
-    buf.indices[i++] = c + 0;
-    buf.indices[i++] = c + 1;
-    buf.indices[i++] = c + 2;
-    buf.indices[i++] = c + 2;
-    buf.indices[i++] = c + 3;
-    buf.indices[i++] = c + 0;
-
-    buf.vertices[c++] = v0;
-    buf.vertices[c++] = v1;
-    buf.vertices[c++] = v2;
-    buf.vertices[c++] = v3;
-    rendered_count++;
+    add_quad_to_batch(sprite_batch[depth], v0, v1, v2, v3);
 }
 
 

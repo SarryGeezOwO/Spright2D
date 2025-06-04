@@ -29,6 +29,26 @@ int entity_spawn(std::string sprite, Vector2f pos, Vector2f scale, float rotatio
     return id_cursor++;
 }
 
+// Return the assigned ID for this entity
+int entity_spawn(std::string sprite, Vector2f pos, Vector2f scale, float rotation, Pivot_Type pivot, Uint16 depth) {
+    if (entity_map.size() >= MAX_ENTITIES) {
+        return -1;
+    }
+
+    Entity ent = {};
+    ent.pivot = pivot;
+    ent.id = id_cursor;
+    ent.depth = depth;
+    ent.position = pos;
+    ent.rotation = rotation;
+    ent.scale = scale;
+    ent.sprite = sprite_get(sprite);
+    ent.image_index = 0;
+    entity_map[id_cursor] = ent; 
+
+    return id_cursor++;
+}
+
 
 void entity_destroy(Uint16 id) {
     entity_map.erase(id);
