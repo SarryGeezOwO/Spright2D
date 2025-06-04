@@ -103,7 +103,7 @@ void config_sprite() {
 
 void load_entities() {
     // Base Scene
-    entity_spawn("player", {150, 300}, {1, 1}, 0, 100);
+    entity_spawn("player", {150, 300}, {1, 1}, 0, 200);
 }
 
 
@@ -129,8 +129,16 @@ void update(global_state& gs, local_state& ls) {
     if (check_key(SDL_SCANCODE_D)) camera.move({cam_spd ,  0        });
 
     // TEST Spawn on mouse position
-    if (check_key_pressed(SDL_SCANCODE_E)) {
-        entity_spawn("enemy", {m_w.x(), m_w.y()}, {1, 1}, 0, 100);
+    std::string id = (check_key(SDL_SCANCODE_E) ? "enemy" : "none");
+    id = (check_key(SDL_SCANCODE_Q) ? "cat" : id);
+
+    if (id != "none") {
+        entity_spawn(
+        id, {
+                m_w.x() - sprite_get(id).frame_size.x() / 2, 
+                m_w.y() - sprite_get(id).frame_size.y() / 2}, 
+            {1, 1}, 0, 100
+        );
     }
 }
 
@@ -146,7 +154,7 @@ void debug_draw(SDL_Renderer* rend) {
     SDL_RenderDebugTextFormat(rend, 20, 20, "FPS: %.2f", current_fps);
     SDL_RenderDebugTextFormat(rend, 20, 40, "Sprite Count: %d", sprite_count());
     SDL_RenderDebugTextFormat(rend, 20, 60, "Entity Count: %d", entity_count());
-    SDL_RenderDebugTextFormat(rend, 20, 80, "Camera Position: %.2f : %.2f", camera.x(), camera.y());
+    SDL_RenderDebugTextFormat(rend, 20, 80, "Rendered: %d", sprite_rendered_count());
 
     // Vertical
     Vector2f vl_s = world_to_screen(camera, {0, -10});
@@ -207,6 +215,9 @@ int main(int argc, char* argv[]) {
         // Entities rendering
         sprite_batch_clear();
         for (auto& [key, value] : entity_get_map()) {
+            
+            value.update_vertices();
+            value.update_frame(current);
             value.submit_vertices(renderer, camera);
         }
 

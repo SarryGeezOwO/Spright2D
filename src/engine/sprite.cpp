@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 #include <SDL3_image/SDL_image.h>
 #include <dirent.h>
+#include <map>
 #include <vector>
 #include <string>
 using namespace Eigen;
@@ -33,7 +34,7 @@ static std::unordered_map<std::string, Sprite_sheet_data> sprite_sheet_map;
 static SDL_Surface* surface_atlas = nullptr; // Gets cleanup when texture_atlas is created
 static SDL_Texture* texture_atlas = nullptr;
 
-static std::unordered_map<std::string, Sprite_buffer> sprite_batch;  // SpriteID, Sprite_buffer
+static std::map<Uint16, Sprite_buffer> sprite_batch;  // Depth, Sprite_buffer
 static int prev_rend_c = 0;
 static int rendered_count = 0;
 
@@ -400,7 +401,7 @@ void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation,
     v3.tex_coord.y = uv.w();
     v3.color = {1, 1, 1, 1};
 
-    Sprite_buffer& buf = sprite_batch[sprite_id];
+    Sprite_buffer& buf = sprite_batch[depth];
     Uint16& c   = buf.vert_count;
     Uint16& i   = buf.index_count;
 
@@ -419,45 +420,30 @@ void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation,
 }
 
 
-// Specifically draws all sprite loaded from the batch from a certain Depth value
-void sprite_batch_draw_depth(Uint16 const depth) {
-
-}
-
-
 // Draws all sprite loaded from the batch with all Depth value
 void sprite_batch_draw_all() {
 
     // For each Sprite_id request
-    for (auto& [key, value] : sprite_batch) {
+    for (auto& [depth, batch] : sprite_batch) {
 
         // Render using the texture corresponding to this depth batch
         bool f = SDL_RenderGeometry(
             renderer, 
             texture_atlas, 
-            value.vertices, 
-            value.vert_count, 
-            value.indices, 
-            value.index_count
+            batch.vertices, 
+            batch.vert_count, 
+            batch.indices, 
+            batch.index_count
         );
 
         if (!f) {
-            SDL_Log("Vert_count: %d", value.vert_count);
-            SDL_Log("Idx_count: %d", value.index_count);
+            SDL_Log("Vert_count: %d", batch.vert_count);
+            SDL_Log("Idx_count: %d", batch.index_count);
             SDL_Log("Error: {%s}", SDL_GetError());
         }
-
-        /*
-        if (prev_rend_c != rendered_count) {
-            SDL_Log("Vertex count {%s}: %d", key.c_str(), value.vert_count);
-        }
-        */
-    }
-
-    if (prev_rend_c != rendered_count) {
-        SDL_Log("Rendered: %d", rendered_count);
     }
 }
+
 
 void sprite_batch_clear() {
     sprite_batch.clear();
@@ -471,6 +457,9 @@ void sprite_cleanup() {
     SDL_DestroySurface(surface_atlas);
 }
 
+int& sprite_rendered_count() {
+    return rendered_count;
+}
 
 Sprite_sheet_data& sprite_get(std::string sprite_id) {
     return sprite_sheet_map.at(sprite_id);

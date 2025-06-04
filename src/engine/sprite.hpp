@@ -45,11 +45,9 @@ void draw_sprite_raw(std::string sprite_id, Uint8 index, float rotation, SDL_FRe
 // Insert a sprite to be drawn in a depth batch
 void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation, Uint16 depth, std::array<Vector2f, 4>& vertices, Camera const cam);
 
-// Specifically draws all sprite loaded from the batch from a certain Depth value
-void sprite_batch_draw_depth(Uint16 const depth);
-
 // Draws all sprite loaded from the batch with all Depth value
 void sprite_batch_draw_all();
 void sprite_batch_clear(); 
+int& sprite_rendered_count();
 
 #endif 
