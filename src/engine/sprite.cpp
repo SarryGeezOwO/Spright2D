@@ -471,7 +471,7 @@ void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation, Vecto
 
 
 // Draws all sprite loaded from the batch with all Depth value
-void sprite_batch_draw_all() {
+void sprite_batch_draw_all(bool debug) {
 
     // For each Sprite_id request
     for (auto& [depth, batch] : sprite_batch) {
@@ -485,6 +485,14 @@ void sprite_batch_draw_all() {
             batch.indices, 
             batch.index_count
         );
+
+        if (debug) {
+            SDL_FPoint debug_points[batch.index_count];
+            for (int i = 0; i < batch.index_count; i++) {
+                debug_points[i] = batch.vertices[batch.indices[i]].position;
+            }
+            SDL_RenderPoints(renderer, debug_points, batch.index_count);
+        }
 
         if (!f) {
             SDL_Log("Vert_count: %d", batch.vert_count);

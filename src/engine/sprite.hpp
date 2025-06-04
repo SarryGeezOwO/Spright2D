@@ -55,7 +55,7 @@ void batch_draw_entity(Entity& entity, Camera const cam);
 void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation, Vector2f scale, Uint16 depth, std::array<Vector2f, 4>& vertices, Camera const cam);
 
 // Draws all sprite loaded from the batch with all Depth value
-void sprite_batch_draw_all();
+void sprite_batch_draw_all(bool debug);
 void sprite_batch_clear(); 
 int& sprite_rendered_count();
 
