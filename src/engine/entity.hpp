@@ -3,6 +3,8 @@
 
 #include "sprite.hpp"
 #include "camera.hpp"
+#include "renderer.hpp"
+
 #include "../utils/util.hpp"
 #include <Eigen/Dense>
 #include <functional>
@@ -14,7 +16,6 @@ static const Uint16 MAX_ENTITIES = 1000;
 struct Entity {
     int id;                          // The Index location on the Entity Array
     Pivot_Type pivot = TOP_LEFT;     // The point where position rests, Defaults to TOP_LEFT
-    Uint16 depth;                    // Entity Depth draw, Defaults to 100
     Sprite_sheet_data sprite;        // The Sprite_sheet to refer to
     Uint8 image_index;               // The current frame of the sprite
     Uint64 last_frame_time;          // Tracking time for FPS
@@ -22,9 +23,10 @@ struct Entity {
     std::array<Vector2f, 4> transformed_vertices;   // The vertices with applied Rotation, Scale
 
     // Transform
-    Vector2f position;      // World Position
+    Uint16 depth;                    // Entity Depth draw, Defaults to 100
+    Vector2f position;               // World Position
     Vector2f scale;
-    float rotation;         // In Degrees
+    float rotation;                 // In Degrees
 
     void update_vertices() {
         Vector2f size = Vector2f{scale.x() * sprite.frame_size.x(), scale.y() * sprite.frame_size.y()};
@@ -44,7 +46,7 @@ struct Entity {
 
     void submit_vertices(Camera& cam) {
         apply_transform();
-        batch_draw_entity(*this, cam);
+        render_batch_entity(*this, cam);
     }
 
 private:

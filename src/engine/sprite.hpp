@@ -5,10 +5,7 @@
 #include <SDL3/SDL.h>
 #include <string>
 #include <Eigen/Dense>
-#include <SDL3_image/SDL_image.h>
 using namespace Eigen;
-
-struct Entity;
 
 /* All sprites have Top-Left pivot points */
 
@@ -27,13 +24,13 @@ struct Sprite_sheet_data {
 };
 
 // Load all available sprites inside the asset folder
-void init_sprite_manager(SDL_Renderer* rend, bool load_all);
-void load_all_sprite();
+void init_sprite_manager(SDL_Renderer* rend);
 void sprite_add(std::string sprite_id, int fps);
 void sprite_cleanup();
 
-SDL_FRect frame_at(std::string sprite_id, Uint16 index);
-Vector4f frame_at_uv(std::string sprite_id, Uint16 index);
+SDL_FRect sprite_frame_at(std::string sprite_id, Uint16 index);
+Vector4f sprite_frame_at_uv(std::string sprite_id, Uint16 index);
+SDL_Texture* sprite_get_atlas();
 
 Sprite_sheet_data& sprite_get(std::string sprite_id);
 int sprite_count();
@@ -45,18 +42,5 @@ void draw_sprite(std::string sprite_id, Uint8 index, float rotation, Camera cons
 
 // Draws directly from the GPU without batching
 void draw_sprite_raw(std::string sprite_id, Uint8 index, float rotation, SDL_FRect rect);
-
-// ============= Batching ==================== //
-
-// Insert an Entity to the rendering batch
-void batch_draw_entity(Entity& entity, Camera const cam);
-
-// Insert a sprite to be drawn in a depth batch
-void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation, Vector2f scale, Uint16 depth, std::array<Vector2f, 4>& vertices, Camera const cam);
-
-// Draws all sprite loaded from the batch with all Depth value
-void sprite_batch_draw_all(bool debug);
-void sprite_batch_clear(); 
-int& sprite_rendered_count();
 
 #endif 

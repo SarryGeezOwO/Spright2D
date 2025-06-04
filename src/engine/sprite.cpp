@@ -12,54 +12,24 @@
 using namespace Eigen;
 
 #define Skyline Vector2i
-#define quad 4
 #define SPRITE_DIR "assets/sprites/"
-#define MAX_VERTEX_COUNT UINT16_MAX
 #define MAX_ATLAS_SIZE 4096
 #define ATLAS_PADDING 2
 
-static SDL_Renderer* renderer = nullptr;
+static SDL_Renderer* rend;
 static std::vector<Skyline> skylines;
 static Uint16 farthest_x;                   // Refers to the final width for Surface_atlas
 static Uint16 farthest_y;                   // Refers to the final height for Surface_atlas
-
-struct Sprite_buffer {
-    SDL_Vertex  vertices[MAX_VERTEX_COUNT];
-    int         indices[MAX_VERTEX_COUNT / 2 * 6];
-    Uint16      vert_count;
-    Uint16      index_count;
-};
 
 // DirName, SpriteSheetData
 static std::unordered_map<std::string, Sprite_sheet_data> sprite_sheet_map;
 static SDL_Surface* surface_atlas = nullptr; // Gets cleanup when texture_atlas is created
 static SDL_Texture* texture_atlas = nullptr;
 
-static std::map<Uint16, Sprite_buffer> sprite_batch;  // Depth, Sprite_buffer
-static int prev_rend_c = 0;
-static int rendered_count = 0;
 
+void reset();
 void load_all_sprite();
 void sprite_add(std::string sprite_id, int fps);
-int guess_fps(int frame_count) {
-    if (frame_count <= 1) return 0;
-    if (frame_count <= 4) return 6;
-    if (frame_count <= 8) return 10;
-    if (frame_count <= 12) return 12;
-    if (frame_count <= 20) return 16;
-    return 24;
-}
-
-// Next time friend
-uint32_t hash_sprite_id(const std::string& name) {
-    // FNV-1a (or any fast hash function)
-    uint32_t hash = 2166136261u;
-    for (char c : name) {
-        hash ^= c;
-        hash *= 16777619;
-    }
-    return hash;
-}
 
 
 SDL_Surface* crop_surface(SDL_Surface* src, int w, int h) {
@@ -71,7 +41,7 @@ SDL_Surface* crop_surface(SDL_Surface* src, int w, int h) {
 }
 
 
-SDL_FRect frame_at(std::string sprite_id, Uint16 index) {
+SDL_FRect sprite_frame_at(std::string sprite_id, Uint16 index) {
     Sprite_sheet_data& data = sprite_get(sprite_id);
 
     if (data.frame_count == 0 || index >= data.frame_count) {
@@ -88,7 +58,7 @@ SDL_FRect frame_at(std::string sprite_id, Uint16 index) {
 }
 
 
-Vector4f frame_at_uv(std::string sprite_id, Uint16 index) {
+Vector4f sprite_frame_at_uv(std::string sprite_id, Uint16 index) {
     Sprite_sheet_data& data = sprite_get(sprite_id);
 
     if (data.frame_count == 0 || index >= data.frame_count) {
@@ -111,9 +81,15 @@ Vector4f frame_at_uv(std::string sprite_id, Uint16 index) {
 }
 
 
-
-
 // ===============================================
+
+void init_sprite_manager(SDL_Renderer* renderer) {
+    rend = renderer;
+
+    reset();
+    load_all_sprite();
+}
+
 
 void reset() {
     if (!surface_atlas) surface_atlas = SDL_CreateSurface(MAX_ATLAS_SIZE, MAX_ATLAS_SIZE, SDL_PIXELFORMAT_RGBA32);
@@ -203,17 +179,9 @@ bool pack_sprite_sheet(const Vector2i size, Vector2i& out) {
 }
 
 
-void init_sprite_manager(SDL_Renderer* rend, bool load_all) {
-    renderer = rend;
-    reset();
-
-    if (load_all) load_all_sprite(); 
-}
-
-
 void update_texture_atlas() {
     surface_atlas = crop_surface(surface_atlas, farthest_x, farthest_y);
-    texture_atlas = SDL_CreateTextureFromSurface(renderer, surface_atlas);
+    texture_atlas = SDL_CreateTextureFromSurface(rend, surface_atlas);
 
     // TL = { x / a_w            y / a_h };
     // BR = { (x + w) / a_w      (y + h) / a_h  };
@@ -255,7 +223,7 @@ void load_all_sprite() {
 
             std::string file_name = std::string(entity->d_name);
             SDL_Log("Adding Sprite Sheet {%s}", file_name.c_str());
-            sprite_add(file_name, guess_fps(extract_frame_count(file_name)));
+            sprite_add(file_name, 30); // fps default similar to GameMaker2
 
         }
         entity = readdir(dir);
@@ -324,10 +292,10 @@ void draw_sprite(std::string sprite_id, Uint8 index, float rotation,
     Vector2f r = world_to_screen(cam, {rect.x, rect.y});
     rect.x = r.x();
     rect.y = r.y();
-    SDL_FRect src = frame_at(sprite_id, index);
+    SDL_FRect src = sprite_frame_at(sprite_id, index);
 
     SDL_RenderTextureRotated(
-        renderer,
+        rend,
         texture_atlas,
         &src, &rect,
         rotation,
@@ -338,10 +306,10 @@ void draw_sprite(std::string sprite_id, Uint8 index, float rotation,
 
 
 void draw_sprite_raw(std::string sprite_id, Uint8 index, float rotation, SDL_FRect rect) {
-    SDL_FRect src = frame_at(sprite_id, index);
+    SDL_FRect src = sprite_frame_at(sprite_id, index);
 
     SDL_RenderTextureRotated(
-        renderer,
+        rend,
         texture_atlas,
         &src, &rect,
         rotation,
@@ -351,178 +319,20 @@ void draw_sprite_raw(std::string sprite_id, Uint8 index, float rotation, SDL_FRe
 }
 
 
-void add_quad_to_batch(Sprite_buffer& buf, SDL_Vertex v0, SDL_Vertex v1, SDL_Vertex v2, SDL_Vertex v3) {
-    Uint16& c   = buf.vert_count;
-    Uint16& i   = buf.index_count;
-
-    buf.indices[i++] = c + 0;
-    buf.indices[i++] = c + 1;
-    buf.indices[i++] = c + 2;
-    buf.indices[i++] = c + 2;
-    buf.indices[i++] = c + 3;
-    buf.indices[i++] = c + 0;
-
-    buf.vertices[c++] = v0;
-    buf.vertices[c++] = v1;
-    buf.vertices[c++] = v2;
-    buf.vertices[c++] = v3;
-    rendered_count++;
-}
-
-
-// Insert an Entity to the rendering batch
-void batch_draw_entity(Entity& entity, Camera const cam) {
-    // Should Draw?
-    int v_out = 0;
-    for (int i = 0; i < entity.transformed_vertices.size(); i++) {
-        if (camera_is_position_out(cam, entity.transformed_vertices[i])) v_out++;
-    }
-
-    SDL_Vertex v0, v1, v2, v3;
-    Vector2f tl = world_to_screen(cam, entity.transformed_vertices[0]);
-    Vector2f tr = world_to_screen(cam, entity.transformed_vertices[1]);
-    Vector2f br = world_to_screen(cam, entity.transformed_vertices[2]);
-    Vector2f bl = world_to_screen(cam, entity.transformed_vertices[3]);
-    Vector4f uv = frame_at_uv(entity.sprite.sprite_id, entity.image_index);
-
-    // Top left
-    v0.position.x = tl.x();
-    v0.position.y = tl.y();
-    v0.tex_coord.x = uv.x();
-    v0.tex_coord.y = uv.y();
-    v0.color = {1, 1, 1, 1}; 
-
-    // Top Right
-    v1.position.x = tr.x();
-    v1.position.y = tr.y();
-    v1.tex_coord.x = uv.z();
-    v1.tex_coord.y = uv.y();
-    v1.color = {1, 1, 1, 1};
-
-    // Bottom right
-    v2.position.x = br.x();
-    v2.position.y = br.y();
-    v2.tex_coord.x = uv.z();
-    v2.tex_coord.y = uv.w();
-    v2.color = {1, 1, 1, 1};
-    
-    // Bottom left
-    v3.position.x = bl.x();
-    v3.position.y = bl.y();
-    v3.tex_coord.x = uv.x();
-    v3.tex_coord.y = uv.w();
-    v3.color = {1, 1, 1, 1};
-    add_quad_to_batch(sprite_batch[entity.depth], v0, v1, v2, v3);
-}
-
-
-// Insert a sprite to be drawn in a depth batch
-void batch_draw_sprite(std::string sprite_id, Uint8 index, float rotation, Vector2f scale, 
-    Uint16 depth, std::array<Vector2f, 4>& vertices, Camera const cam) {
-        
-    // Should Draw?
-    int v_out = 0;
-    for (int i = 0; i < vertices.size(); i++) {
-        if (camera_is_position_out(cam, vertices[i])) v_out++;
-    }
-
-    // If all vertex is out of camera view, then skip this sprite
-    if (v_out >= 4) return;
-
-    SDL_Vertex v0, v1, v2, v3;
-    Vector2f tl = world_to_screen(cam, vertices[0]);
-    Vector2f tr = world_to_screen(cam, vertices[1]);
-    Vector2f br = world_to_screen(cam, vertices[2]);
-    Vector2f bl = world_to_screen(cam, vertices[3]);
-    Vector4f uv = frame_at_uv(sprite_id, index);
-
-    // TODO: apply transformation matrix here (rotation and Scale)
-
-
-    // Top left
-    v0.position.x = tl.x();
-    v0.position.y = tl.y();
-    v0.tex_coord.x = uv.x();
-    v0.tex_coord.y = uv.y();
-    v0.color = {1, 0, 1, 1}; 
-
-    // Top Right
-    v1.position.x = tr.x();
-    v1.position.y = tr.y();
-    v1.tex_coord.x = uv.z();
-    v1.tex_coord.y = uv.y();
-    v1.color = {1, 1, 0, 1};
-
-    // Bottom right
-    v2.position.x = br.x();
-    v2.position.y = br.y();
-    v2.tex_coord.x = uv.z();
-    v2.tex_coord.y = uv.w();
-    v2.color = {0, 1, 1, 1};
-    
-    // Bottom left
-    v3.position.x = bl.x();
-    v3.position.y = bl.y();
-    v3.tex_coord.x = uv.x();
-    v3.tex_coord.y = uv.w();
-    v3.color = {1, 1, 1, 1};
-    add_quad_to_batch(sprite_batch[depth], v0, v1, v2, v3);
-}
-
-
-// Draws all sprite loaded from the batch with all Depth value
-void sprite_batch_draw_all(bool debug) {
-
-    // For each Sprite_id request
-    for (auto& [depth, batch] : sprite_batch) {
-
-        // Render using the texture corresponding to this depth batch
-        bool f = SDL_RenderGeometry(
-            renderer, 
-            texture_atlas, 
-            batch.vertices, 
-            batch.vert_count, 
-            batch.indices, 
-            batch.index_count
-        );
-
-        if (debug) {
-            SDL_FPoint debug_points[batch.index_count];
-            for (int i = 0; i < batch.index_count; i++) {
-                debug_points[i] = batch.vertices[batch.indices[i]].position;
-            }
-            SDL_RenderPoints(renderer, debug_points, batch.index_count);
-        }
-
-        if (!f) {
-            SDL_Log("Vert_count: %d", batch.vert_count);
-            SDL_Log("Idx_count: %d", batch.index_count);
-            SDL_Log("Error: {%s}", SDL_GetError());
-        }
-    }
-}
-
-
-void sprite_batch_clear() {
-    sprite_batch.clear();
-    prev_rend_c = rendered_count;
-    rendered_count = 0;
-}
-
-
 void sprite_cleanup() {
     SDL_DestroyTexture(texture_atlas);
     SDL_DestroySurface(surface_atlas);
 }
 
-int& sprite_rendered_count() {
-    return rendered_count;
-}
 
 Sprite_sheet_data& sprite_get(std::string sprite_id) {
     return sprite_sheet_map.at(sprite_id);
 }
 
+
+SDL_Texture* sprite_get_atlas() {
+    return texture_atlas;
+}
 
 int sprite_count() {
     return sprite_sheet_map.size();

@@ -12,6 +12,7 @@
 using namespace Eigen;
 
 // User define
+#include "engine/renderer.hpp"
 #include "engine/sprite.hpp"
 #include "engine/entity.hpp"
 #include "engine/camera.hpp"
@@ -60,6 +61,8 @@ SCENE_TYPE currentScene = BaseRoom;
 
 // Helper Functions
 void app_quit();
+void config_sprite();
+void load_entities();
 
 // Initiate SDL3, Window, and Renderer
 void init() {
@@ -89,8 +92,10 @@ void init() {
     }
 
     // Initialization of System (Peak shit🙏🙏)
-    init_sprite_manager(renderer, true);   // Load all sprite_sheets
-    flip_event(DEBUG_MODE);                 // Initially start with debug mode
+    init_sprite_manager(renderer);   // Load all sprite_sheets
+    render_init(renderer);
+    config_sprite();
+    flip_event(DEBUG_MODE);          // Initially start with debug mode
 
     //  >>>> You wanna Generate some sprite_sheets? Do it below. <<<<<<   
     // generate_sprite_sheet("dir", "spr_output_0.png");
@@ -98,7 +103,9 @@ void init() {
 
 // FPS and shits
 void config_sprite() {
-    sprite_get("enemy").fps = 6;
+    sprite_get("enemy").fps     = 8;
+    sprite_get("cat").fps       = 6;
+    sprite_get("player").fps    = 6;
 }
 
 void load_entities() {
@@ -157,7 +164,7 @@ void debug_draw(SDL_Renderer* rend) {
     SDL_RenderDebugTextFormat(rend, 20, 20, "FPS: %.2f", current_fps);
     SDL_RenderDebugTextFormat(rend, 20, 40, "Sprite Count: %d", sprite_count());
     SDL_RenderDebugTextFormat(rend, 20, 60, "Entity Count: %d", entity_count());
-    SDL_RenderDebugTextFormat(rend, 20, 80, "Rendered: %d", sprite_rendered_count());
+    SDL_RenderDebugTextFormat(rend, 20, 80, "Rendered: %d", rendered_count());
 
     // Vertical
     Vector2f vl_s = world_to_screen(camera, {0, -10});
@@ -169,8 +176,6 @@ void debug_draw(SDL_Renderer* rend) {
     Vector2f hl_e = world_to_screen(camera, {10, 0});
     SDL_RenderLine(rend, hl_s.x(), hl_s.y(), hl_e.x(), hl_e.y());
 }
-
-
 
 
 
@@ -188,7 +193,6 @@ int main(int argc, char* argv[]) {
 
     Uint64 before = SDL_GetTicks();
     load_entities();
-    config_sprite();
     SDL_Log("Time to load: %d ms.", SDL_GetTicks() - before);
 
     // Game Loop
@@ -216,7 +220,7 @@ int main(int argc, char* argv[]) {
         }
  
         // Entities rendering
-        sprite_batch_clear();
+        render_batch_clear_all();
         for (auto& [key, value] : entity_get_map()) {
             value.update_vertices();
             value.update_frame(current);
@@ -232,7 +236,7 @@ int main(int argc, char* argv[]) {
         render(renderer, gs, ls);
         
         // Renders all vertex buffers with texture i.e, An Entity lol
-        sprite_batch_draw_all(is_event_active(DEBUG_MODE));
+        render_batch_all(is_event_active(DEBUG_MODE));
         SDL_RenderPresent(renderer); 
 
         // Frame time
@@ -252,6 +256,7 @@ int main(int argc, char* argv[]) {
     app_quit();
     return EXIT_SUCCESS;
 }
+
 
 // System CLean-up
 void app_quit() {

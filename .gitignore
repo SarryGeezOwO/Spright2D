@@ -6,7 +6,7 @@ TODO.txt
 # build files
 bin/Spright2D.exe
 bin/Texture_atlas.png
-bin/temp/
+bin/assets/temp/
 
 # Ignore C++ object files
 obj/
