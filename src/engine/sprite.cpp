@@ -29,7 +29,7 @@ static SDL_Texture* texture_atlas = nullptr;
 
 void reset();
 void load_all_sprite();
-void sprite_add(std::string sprite_id, int fps);
+void sprite_add(std::string sprite_file, int fps);
 
 
 SDL_Surface* crop_surface(SDL_Surface* src, int w, int h) {
@@ -239,22 +239,21 @@ void load_all_sprite() {
 // Adds this sprite_sheet to the Texture atlas
 //     example sprite_id: spr_player_5.png
 // Automatically assigns position for each individual sprite_sheet
-void sprite_add(std::string sprite_id, int fps) {
+void sprite_add(std::string sprite_file, int fps) {
     
-    std::string actual_id = extract_sprite_name(sprite_id);
-    //uint32_t hash_id = hash_sprite_id(extract_sprite_name(sprite_id));
+    std::string actual_id = extract_sprite_name(sprite_file);
     
     // Check if sprite is already loaded
-    auto it = sprite_sheet_map.find(sprite_id);
+    auto it = sprite_sheet_map.find(sprite_file);
     if (it != sprite_sheet_map.end()) {
-        SDL_Log("Sprite {%s} already exists.", sprite_id.c_str());
+        SDL_Log("Sprite {%s} already exists.", sprite_file.c_str());
         return;
     }
 
     // Load Image file
-    SDL_Surface* sprite_sheet =  IMG_Load((std::string(SPRITE_DIR) + sprite_id).c_str());
+    SDL_Surface* sprite_sheet =  IMG_Load((std::string(SPRITE_DIR) + sprite_file).c_str());
     if (!sprite_sheet) {
-        SDL_Log("Failed to load sprite sheet: {%s}", sprite_id.c_str());
+        SDL_Log("Failed to load sprite sheet: {%s}", sprite_file.c_str());
         return;
     }
 
@@ -262,7 +261,7 @@ void sprite_add(std::string sprite_id, int fps) {
     data.sprite_id = actual_id;
     data.fps = fps;
     data.loop = true;
-    data.frame_count = extract_frame_count(sprite_id);
+    data.frame_count = extract_frame_count(sprite_file);
 
     Uint16 ss_width = sprite_sheet->w;
     Uint16 ss_height = sprite_sheet->h;

@@ -236,7 +236,7 @@ int main(int argc, char* argv[]) {
         render(renderer, gs, ls);
         
         // Renders all vertex buffers with texture i.e, An Entity lol
-        render_batch_all(is_event_active(DEBUG_MODE));
+        render_batch_all(false);
         SDL_RenderPresent(renderer); 
 
         // Frame time
