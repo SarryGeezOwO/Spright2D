@@ -37,12 +37,9 @@ void add_quad_to_batch(VertexBuffer& buf, SDL_Vertex v0, SDL_Vertex v1, SDL_Vert
 }
 
 
-void render_batch_entity(Entity& entity, Camera const cam) {
-    // Should Draw?
-    int v_out = 0;
-    for (int i = 0; i < entity.transformed_vertices.size(); i++) {
-        if (camera_is_position_out(cam, entity.transformed_vertices[i])) v_out++;
-    }
+void render_batch_entity(const Entity& entity, const Camera& cam) {
+    // Render if at least one vertex is seenable
+    if (camera_is_quad_in(cam, entity.bbox())) return;
 
     SDL_Vertex v0, v1, v2, v3;
     Vector2f tl = world_to_screen(cam, entity.transformed_vertices[0]);
@@ -83,16 +80,16 @@ void render_batch_entity(Entity& entity, Camera const cam) {
 
 
 void render_batch_sprite(std::string sprite_id, Uint8 index, float rotation, Vector2f scale, 
-    Uint16 depth, std::array<Vector2f, 4>& vertices, Camera const cam) {
-        
-    // Should Draw?
-    int v_out = 0;
-    for (int i = 0; i < vertices.size(); i++) {
-        if (camera_is_position_out(cam, vertices[i])) v_out++;
-    }
+    Uint16 depth, const std::array<Vector2f, 4>& vertices, const Camera& cam) {
+    Vector4f bbox = {
+        vertices[0].x(),
+        vertices[0].y(),
+        vertices[2].x(),
+        vertices[2].y()
+    };
 
-    // If all vertex is out of camera view, then skip this sprite
-    if (v_out >= 4) return;
+    // Render if at least one vertex is seenable
+    if (camera_is_quad_in(cam, bbox)) return;
 
     SDL_Vertex v0, v1, v2, v3;
     Vector2f tl = world_to_screen(cam, vertices[0]);

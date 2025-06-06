@@ -2,35 +2,54 @@
 #include "Eigen/Dense"
 using namespace Eigen;
 
-static int culling_margin = 25;
+static float culling_margin = 100;
 
-int& cam_culling_margin() {
+float& cam_culling_margin() {
     return culling_margin;
 }
 
-void world_to_screen_ref(Camera const cam, Vector2f& world_position) {
+void world_to_screen_ref(const Camera& cam, Vector2f& world_position) {
     world_position - cam.position;
 }
 
-Vector2f world_to_screen(Camera const cam, Vector2f const world_position) {
+Vector2f world_to_screen(const Camera& cam, Vector2f const world_position) {
     return world_position - cam.position;
 }
 
-void screen_to_world_ref(Camera const cam, Vector2f& screen_position) {
+void screen_to_world_ref(const Camera& cam, Vector2f& screen_position) {
     screen_position + cam.position;
 }
 
-Vector2f screen_to_world(Camera const cam, Vector2f const screen_position) {
+Vector2f screen_to_world(const Camera& cam, Vector2f const screen_position) {
     return screen_position + cam.position;
 }
 
 
-// Return True is given position is out of camera view
-bool camera_is_position_out(Camera const cam, Vector2f const world_position) {
-    return !(
-        world_position.x() >= cam.position.x() - culling_margin &&
-        world_position.x() <= cam.position.x() + (cam.size.x() + culling_margin) &&
-        world_position.y() >= cam.position.y() - culling_margin &&
-        world_position.y() <= cam.position.y() + (cam.size.y() + culling_margin)
+bool camera_is_quad_in(const Camera& cam, Vector4f const quad_bbox) {
+    Vector4f bbox = cam.bbox();
+    bbox.x() -= culling_margin;
+    bbox.y() -= culling_margin;
+    bbox.z() += culling_margin;
+    bbox.w() += culling_margin;
+    return (
+        quad_bbox.z() < bbox.x() ||
+        quad_bbox.x() > bbox.z() ||
+        quad_bbox.w() < bbox.y() ||
+        quad_bbox.y() > bbox.w()
+    );
+}
+
+
+// Return True is given position is seen inside the camera view
+bool camera_is_position_in(const Camera& cam, Vector2f world_position) {
+    Vector4f bbox = cam.bbox();
+    bbox.x() -= culling_margin;
+    bbox.y() -= culling_margin;
+    bbox.z() += culling_margin;
+    bbox.w() += culling_margin;
+
+    return (
+        world_position.x() >= bbox.x() && world_position.x() <= bbox.z() &&
+        world_position.y() >= bbox.y() && world_position.y() <= bbox.w()
     );
 }

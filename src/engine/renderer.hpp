@@ -42,7 +42,7 @@ void render_init(SDL_Renderer* rend);
  * @param entity Reference to the Entity to batch.
  * @param cam The camera used for rendering transformations.
  */
-void render_batch_entity(Entity& entity, Camera const cam);
+void render_batch_entity(const Entity& entity, const Camera& cam);
 
 
 /**
@@ -56,7 +56,7 @@ void render_batch_entity(Entity& entity, Camera const cam);
  * @param vertices Array of 4 vertices defining the sprite quad.
  * @param cam The camera used for rendering transformations.
  */
-void render_batch_sprite(std::string sprite_id, Uint8 index, float rotation, Vector2f scale, Uint16 depth, std::array<Vector2f, 4>& vertices, Camera const cam);
+void render_batch_sprite(std::string sprite_id, Uint8 index, float rotation, Vector2f scale, Uint16 depth, const std::array<Vector2f, 4>& vertices, const Camera& cam);
 
 
 // =========== PRIMITIVE SHAPES =================== //

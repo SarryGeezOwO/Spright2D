@@ -20,6 +20,10 @@ static const Uint16 MAX_ENTITIES = 1000;
  * including position, scale, rotation, sprite data, and vertex arrays.
  */
 struct Entity {
+private:
+    Affine2f matx = Affine2f::Identity();
+
+public:
     int id;                          /**< The index location in the entity array. */
     Pivot_Type pivot = TOP_LEFT;     /**< The point where position rests, defaults to TOP_LEFT. */
     Sprite_sheet_data sprite;        /**< The sprite sheet to refer to. */
@@ -34,11 +38,26 @@ struct Entity {
     Vector2f scale;                  /**< Scale factor. */
     float rotation;                  /**< Rotation in degrees. */
 
+
+    /**
+     * @brief Get's the Bounding box of this entity, (transformed)
+     * @return The Top-left and Bottom-right of this entity [x, y, z, w]
+     */
+    Vector4f bbox() const {
+        return {
+            transformed_vertices[0].x(),
+            transformed_vertices[0].y(),
+            transformed_vertices[2].x(),
+            transformed_vertices[2].y()  
+        };   
+    }
+
+    
     /**
      * @brief Updates the entity's vertex positions based on position, and pivot.
      */
     void update_vertices() {
-        Vector2f size = sprite.frame_size;
+        Vector2f size = Vector2f{sprite.frame_size.x(), sprite.frame_size.y()};
         Vector2f offset = get_pivot_offset(pivot, size);
         vertices[0] = Vector2f(position.x() - offset.x(), position.y() - offset.y());   // Top-left
         vertices[1] = Vector2f(position.x() + offset.x(), position.y() - offset.y());   // Top-right
@@ -62,12 +81,10 @@ struct Entity {
      * @brief Applies transformation and submits the entity's vertices for rendering.
      * @param cam Reference to the camera for rendering transformations.
      */
-    void submit_vertices(Camera& cam) {
-        apply_transform();
+    void submit_vertices(const Camera& cam) {
         render_batch_entity(*this, cam);
     }
 
-private:
     /**
      * @brief Applies rotation, scale, and pivot offset to the entity's vertices.
      */
@@ -75,6 +92,7 @@ private:
 
         Vector2f size = Vector2f{scale.x() * sprite.frame_size.x(), scale.y() * sprite.frame_size.y()};
         Vector2f p_offset = get_pivot_offset(pivot, size);
+        matx = Affine2f::Identity();
 
         std::array<Vector2f, 4> center_p = {
             Vector2f{0, 0},         // TL
@@ -83,7 +101,6 @@ private:
             Vector2f{0, size.y()}   // BL
         };
         
-        Affine2f matx = Affine2f::Identity();
         matx.translate(position);
         matx.rotate(deg_to_rad(rotation));      // In Degrees
         matx.scale(scale);                      // ermm.... ts pmo smh

@@ -12,10 +12,10 @@
 using namespace Eigen;
 
 // User define
+#include "engine/camera.hpp"
 #include "engine/renderer.hpp"
 #include "engine/sprite.hpp"
 #include "engine/entity.hpp"
-#include "engine/camera.hpp"
 #include "core/input.hpp"
 #include "utils/util.hpp"
 
@@ -83,7 +83,6 @@ void init() {
     }
 
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
-    SDL_SetHint(SDL_HINT_RENDER_DIRECT3D_THREADSAFE, "1");
 
     renderer = SDL_CreateRenderer(win, NULL);
     if (renderer == nullptr) {
@@ -93,8 +92,8 @@ void init() {
 
     // Initialization of System (Peak shit🙏🙏)
     init_sprite_manager(renderer);   // Load all sprite_sheets
-    render_init(renderer);
     config_sprite();
+    render_init(renderer);
     flip_event(DEBUG_MODE);          // Initially start with debug mode
 
     //  >>>> You wanna Generate some sprite_sheets? Do it below. <<<<<<   
@@ -222,8 +221,9 @@ int main(int argc, char* argv[]) {
         // Entities rendering
         render_batch_clear_all();
         for (auto& [key, value] : entity_get_map()) {
-            value.update_vertices();
             value.update_frame(current);
+            value.update_vertices();
+            value.apply_transform();
             value.submit_vertices(camera);
         }
 
@@ -236,7 +236,7 @@ int main(int argc, char* argv[]) {
         render(renderer, gs, ls);
         
         // Renders all vertex buffers with texture i.e, An Entity lol
-        render_batch_all(false);
+        render_batch_all(true);
         SDL_RenderPresent(renderer); 
 
         // Frame time
