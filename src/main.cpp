@@ -152,28 +152,28 @@ void update(global_state& gs, local_state& ls) {
 }
 
 // Renders Drawable Objects ===========================================================
-void render(SDL_Renderer* rend, global_state gs, local_state ls) {
+void render(const global_state gs, const local_state ls) {
     /* CODE (Always white on start) */
     draw_sprite_raw("player", 0, 45, {200, 200, 200, 200});
 }
 
 // Debug shit
-void debug_draw(SDL_Renderer* rend) {
+void debug_draw() {
     if (!is_event_active(DEBUG_MODE)) return;
-    SDL_RenderDebugTextFormat(rend, 20, 20, "FPS: %.2f", current_fps);
-    SDL_RenderDebugTextFormat(rend, 20, 40, "Sprite Count: %d", sprite_count());
-    SDL_RenderDebugTextFormat(rend, 20, 60, "Entity Count: %d", entity_count());
-    SDL_RenderDebugTextFormat(rend, 20, 80, "Rendered: %d", rendered_count());
+    SDL_RenderDebugTextFormat(renderer, 20, 20, "FPS: %.2f", current_fps);
+    SDL_RenderDebugTextFormat(renderer, 20, 40, "Sprite Count: %d", sprite_count());
+    SDL_RenderDebugTextFormat(renderer, 20, 60, "Entity Count: %d", entity_count());
+    SDL_RenderDebugTextFormat(renderer, 20, 80, "Rendered: %d", rendered_count());
 
     // Vertical
     Vector2f vl_s = world_to_screen(camera, {0, -10});
     Vector2f vl_e = world_to_screen(camera, {0, 10});
-    SDL_RenderLine(rend, vl_s.x(), vl_s.y(), vl_e.x(), vl_e.y());
+    SDL_RenderLine(renderer, vl_s.x(), vl_s.y(), vl_e.x(), vl_e.y());
 
     // Horizontal
     Vector2f hl_s = world_to_screen(camera, {-10, 0});
     Vector2f hl_e = world_to_screen(camera, {10, 0});
-    SDL_RenderLine(rend, hl_s.x(), hl_s.y(), hl_e.x(), hl_e.y());
+    SDL_RenderLine(renderer, hl_s.x(), hl_s.y(), hl_e.x(), hl_e.y());
 }
 
 
@@ -232,8 +232,8 @@ int main(int argc, char* argv[]) {
         SDL_RenderClear(renderer);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Always reset back to white
 
-        debug_draw(renderer);
-        render(renderer, gs, ls);
+        debug_draw();
+        render(gs, ls);
         
         // Renders all vertex buffers with texture i.e, An Entity lol
         render_batch_all(true);

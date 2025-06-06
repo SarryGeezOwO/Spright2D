@@ -16,9 +16,9 @@ using namespace Eigen;
  * They have their own ways of defining pivot point.
  */
 struct Sprite_sheet_data {
-    std::string sprite_id;      /**< File name or unique identifier for the sprite sheet. */
+    std::string sprite_id;      /**< The name of a sprite sheet. */
     int frame_count;            /**< Number of frames in the sprite sheet (auto-calculated). */
-    int fps;                    /**< Frames per second for animation (default is an educated guess). */
+    int fps;                    /**< Frames per second for animation (defaults to 30 fps). */
     Vector2i location;          /**< Location of the sprite sheet on the texture atlas. */
     Vector2i frame_size;        /**< Size of each frame in the sprite sheet (auto-calculated). */
     Vector4f UV_coord;          /**< UV coordinates of the sprite sheet, from top-left to bottom-right. */
@@ -48,7 +48,7 @@ void init_sprite_manager(SDL_Renderer* rend);
  * @param sprite_file The file name of the sprite under "assets/sprites" directory.
  * @param fps Frames per second for the sprite animation.
  */
-void sprite_add(std::string sprite_file, int fps);
+void sprite_add(const std::string sprite_file, int fps);
 
 
 /**
@@ -63,7 +63,7 @@ void sprite_cleanup();
  * @param index The frame index.
  * @return SDL_FRect representing the frame's position and size.
  */
-SDL_FRect sprite_frame_at(std::string sprite_id, Uint16 index);
+SDL_FRect sprite_frame_at(const std::string& sprite_id, Uint16 index);
 
 
 /**
@@ -72,7 +72,7 @@ SDL_FRect sprite_frame_at(std::string sprite_id, Uint16 index);
  * @param index The frame index.
  * @return Vector4f containing the UV coordinates [Top-Left, Bottom-Right].
  */
-Vector4f sprite_frame_at_uv(std::string sprite_id, Uint16 index);
+Vector4f sprite_frame_at_uv(const std::string& sprite_id, Uint16 index);
 
 
 /**
@@ -87,7 +87,7 @@ SDL_Texture* sprite_get_atlas();
  * @param sprite_id The ID of the sprite.
  * @return Reference to the Sprite_sheet_data.
  */
-Sprite_sheet_data& sprite_get(std::string sprite_id);
+Sprite_sheet_data& sprite_get(const std::string& sprite_id);
 
 
 /**
@@ -108,7 +108,7 @@ int sprite_count();
  * @param cam The camera used for rendering transformations.
  * @param rect The destination rectangle for drawing.
  */
-void draw_sprite(std::string sprite_id, Uint8 index, float rotation, Camera const cam, SDL_FRect rect);
+void draw_sprite(const std::string& sprite_id, Uint8 index, float rotation, Camera const cam, SDL_FRect rect);
 
 
 /**
@@ -118,6 +118,6 @@ void draw_sprite(std::string sprite_id, Uint8 index, float rotation, Camera cons
  * @param rotation Rotation in degrees.
  * @param rect The destination rectangle for drawing.
  */
-void draw_sprite_raw(std::string sprite_id, Uint8 index, float rotation, SDL_FRect rect);
+void draw_sprite_raw(const std::string& sprite_id, Uint8 index, float rotation, SDL_FRect rect);
 
 #endif

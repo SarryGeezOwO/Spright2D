@@ -52,7 +52,7 @@ struct Camera {
  * @param cam The camera to use for transformation.
  * @param world_position The world position to transform (modified in-place).
  */
-void world_to_screen_ref(Camera const cam, Vector2f &world_position);
+void world_to_screen_ref(const Camera& cam, Vector2f &world_position);
 
 
 /**

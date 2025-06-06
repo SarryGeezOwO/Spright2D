@@ -29,7 +29,7 @@ static SDL_Texture* texture_atlas = nullptr;
 
 void reset();
 void load_all_sprite();
-void sprite_add(std::string sprite_file, int fps);
+void sprite_add(const std::string sprite_file, int fps);
 
 
 SDL_Surface* crop_surface(SDL_Surface* src, int w, int h) {
@@ -41,7 +41,7 @@ SDL_Surface* crop_surface(SDL_Surface* src, int w, int h) {
 }
 
 
-SDL_FRect sprite_frame_at(std::string sprite_id, Uint16 index) {
+SDL_FRect sprite_frame_at(const std::string& sprite_id, Uint16 index) {
     Sprite_sheet_data& data = sprite_get(sprite_id);
 
     if (data.frame_count == 0 || index >= data.frame_count) {
@@ -58,7 +58,7 @@ SDL_FRect sprite_frame_at(std::string sprite_id, Uint16 index) {
 }
 
 
-Vector4f sprite_frame_at_uv(std::string sprite_id, Uint16 index) {
+Vector4f sprite_frame_at_uv(const std::string& sprite_id, Uint16 index) {
     Sprite_sheet_data& data = sprite_get(sprite_id);
 
     if (data.frame_count == 0 || index >= data.frame_count) {
@@ -239,7 +239,7 @@ void load_all_sprite() {
 // Adds this sprite_sheet to the Texture atlas
 //     example sprite_id: spr_player_5.png
 // Automatically assigns position for each individual sprite_sheet
-void sprite_add(std::string sprite_file, int fps) {
+void sprite_add(const std::string sprite_file, int fps) {
     
     std::string actual_id = extract_sprite_name(sprite_file);
     
@@ -285,7 +285,7 @@ void sprite_add(std::string sprite_file, int fps) {
 }
 
 
-void draw_sprite(std::string sprite_id, Uint8 index, float rotation, 
+void draw_sprite(const std::string& sprite_id, Uint8 index, float rotation, 
     Camera const cam, SDL_FRect rect) {
 
     Vector2f r = world_to_screen(cam, {rect.x, rect.y});
@@ -304,7 +304,7 @@ void draw_sprite(std::string sprite_id, Uint8 index, float rotation,
 }
 
 
-void draw_sprite_raw(std::string sprite_id, Uint8 index, float rotation, SDL_FRect rect) {
+void draw_sprite_raw(const std::string& sprite_id, Uint8 index, float rotation, SDL_FRect rect) {
     SDL_FRect src = sprite_frame_at(sprite_id, index);
 
     SDL_RenderTextureRotated(
@@ -324,7 +324,7 @@ void sprite_cleanup() {
 }
 
 
-Sprite_sheet_data& sprite_get(std::string sprite_id) {
+Sprite_sheet_data& sprite_get(const std::string& sprite_id) {
     return sprite_sheet_map.at(sprite_id);
 }
 
