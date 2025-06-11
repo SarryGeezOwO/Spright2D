@@ -24,4 +24,4 @@ clean:
 	rm -rf $(OBJ_DIR)/*.o $(EXE)
 
 run: all
-	cd $(BIN_DIR) && ./$(TARGET).exe
+	cd $(BIN_DIR) && $(TARGET).exe

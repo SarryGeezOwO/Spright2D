@@ -53,11 +53,8 @@ Camera camera = {
     {WIN_WIDTH, WIN_HEIGHT}
 };
 
-// Add scenes here
-enum SCENE_TYPE { 
-    BaseRoom 
-};
-SCENE_TYPE currentScene = BaseRoom;
+// Cache sprite IDs
+Uint64 spr_player = hash_string("player");
 
 // Helper Functions
 void app_quit();
@@ -154,7 +151,7 @@ void update(global_state& gs, local_state& ls) {
 // Renders Drawable Objects ===========================================================
 void render(const global_state gs, const local_state ls) {
     /* CODE (Always white on start) */
-    draw_sprite_raw("player", 0, 45, {200, 200, 200, 200});
+    draw_sprite_raw(spr_player, 0, 45, {200, 200, 200, 200});
 }
 
 // Debug shit
@@ -214,7 +211,7 @@ int main(int argc, char* argv[]) {
         game_running = input_handle_event();
         while (lag >= MS_PER_FRAME)
         {
-            update(gs, ls);          // Per frame
+            update(gs, ls);
             lag -= MS_PER_FRAME; 
         }
  

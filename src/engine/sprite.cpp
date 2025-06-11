@@ -21,15 +21,10 @@ static std::vector<Skyline> skylines;
 static Uint16 farthest_x;                   // Refers to the final width for Surface_atlas
 static Uint16 farthest_y;                   // Refers to the final height for Surface_atlas
 
-// DirName, SpriteSheetData
-static std::unordered_map<std::string, Sprite_sheet_data> sprite_sheet_map;
+// HashID, SpriteSheetData
+static std::unordered_map<Uint64, Sprite_sheet_data> sprite_sheet_map;
 static SDL_Surface* surface_atlas = nullptr; // Gets cleanup when texture_atlas is created
 static SDL_Texture* texture_atlas = nullptr;
-
-
-void reset();
-void load_all_sprite();
-void sprite_add(const std::string sprite_file, int fps);
 
 
 SDL_Surface* crop_surface(SDL_Surface* src, int w, int h) {
@@ -41,11 +36,11 @@ SDL_Surface* crop_surface(SDL_Surface* src, int w, int h) {
 }
 
 
-SDL_FRect sprite_frame_at(const std::string& sprite_id, Uint16 index) {
+SDL_FRect sprite_frame_at(const Uint64 sprite_id, Uint16 index) {
     Sprite_sheet_data& data = sprite_get(sprite_id);
 
     if (data.frame_count == 0 || index >= data.frame_count) {
-        SDL_Log("Warning: Invalid frame index %d for sprite %s", index, sprite_id.c_str());
+        SDL_Log("Warning: Invalid frame index %d for sprite %s", index, data.sprite_name.c_str());
         return SDL_FRect{0, 0, 0, 0};
     }
 
@@ -58,11 +53,11 @@ SDL_FRect sprite_frame_at(const std::string& sprite_id, Uint16 index) {
 }
 
 
-Vector4f sprite_frame_at_uv(const std::string& sprite_id, Uint16 index) {
+Vector4f sprite_frame_at_uv(const Uint64 sprite_id, Uint16 index) {
     Sprite_sheet_data& data = sprite_get(sprite_id);
 
     if (data.frame_count == 0 || index >= data.frame_count) {
-        SDL_Log("Warning: Invalid frame index %d for sprite %s", index, sprite_id.c_str());
+        SDL_Log("Warning: Invalid frame index %d for sprite %s", index, data.sprite_name.c_str());
         return Vector4f{0, 0, 0, 0};
     }
 
@@ -82,13 +77,6 @@ Vector4f sprite_frame_at_uv(const std::string& sprite_id, Uint16 index) {
 
 
 // ===============================================
-
-void init_sprite_manager(SDL_Renderer* renderer) {
-    rend = renderer;
-
-    reset();
-    load_all_sprite();
-}
 
 
 void reset() {
@@ -205,6 +193,97 @@ void update_texture_atlas() {
 }
 
 
+// Expects a Sprite_sheet
+// Sprite_id is the file_name
+// Adds this sprite_sheet to the Texture atlas
+//     example sprite_id: spr_player_5.png
+// Automatically assigns position for each individual sprite_sheet
+void sprite_add(const std::string sprite_file, int fps) {
+    std::string spr_name = extract_sprite_name(sprite_file);
+    Uint64 spr_id = hash_string(spr_name);
+    
+    // Check if sprite is already loaded
+    auto it = sprite_sheet_map.find(spr_id);
+    if (it != sprite_sheet_map.end()) {
+        SDL_Log("Sprite {%s} already exists.", sprite_file.c_str());
+        return;
+    }
+
+    // Load Image file
+    SDL_Surface* sprite_sheet =  IMG_Load((std::string(SPRITE_DIR) + sprite_file).c_str());
+    if (!sprite_sheet) {
+        SDL_Log("Failed to load sprite sheet: {%s}", sprite_file.c_str());
+        return;
+    }
+
+    Sprite_sheet_data data = {};
+    data.sprite_id = spr_id;
+    data.sprite_name = spr_name;
+    data.fps = fps;
+    data.loop = true;
+    data.frame_count = extract_frame_count(sprite_file);
+
+    Uint16 ss_width = sprite_sheet->w;
+    Uint16 ss_height = sprite_sheet->h;
+    data.frame_size = { ss_width / data.frame_count, ss_height };
+
+    pack_sprite_sheet({ss_width, ss_height }, data.location);
+    sprite_sheet_map[spr_id] = data;
+
+    // Blit that surface to the Texture_Atlas
+    SDL_Rect dest = {
+        data.location.x(),
+        data.location.y(),
+        ss_width,
+        ss_height
+    };
+
+    SDL_BlitSurface(sprite_sheet, nullptr, surface_atlas, &dest);
+    SDL_DestroySurface(sprite_sheet);
+    SDL_Log("  > Sprite Loaded Succesfully. {%s}", spr_name.c_str());
+    return;
+}
+
+
+void draw_sprite(const Uint64 sprite_id, Uint8 index, float rotation, 
+    Camera const cam, SDL_FRect rect) {
+
+    Vector2f r = world_to_screen(cam, {rect.x, rect.y});
+    SDL_FRect src = sprite_frame_at(sprite_id, index);
+    rect.x = r.x();
+    rect.y = r.y();
+
+    SDL_RenderTextureRotated(
+        rend,
+        texture_atlas,
+        &src, &rect,
+        rotation,
+        NULL,
+        SDL_FLIP_NONE  
+    );
+}
+
+
+void draw_sprite_raw(const Uint64 sprite_id, Uint8 index, float rotation, SDL_FRect rect) {
+    SDL_FRect src = sprite_frame_at(sprite_id, index);
+
+    SDL_RenderTextureRotated(
+        rend,
+        texture_atlas,
+        &src, &rect,
+        rotation,
+        NULL,
+        SDL_FLIP_NONE  
+    );
+}
+
+
+void sprite_cleanup() {
+    SDL_DestroyTexture(texture_atlas);
+    SDL_DestroySurface(surface_atlas);
+}
+
+
 void load_all_sprite() {
     // Load Every sprite asset found
     DIR* dir = opendir(SPRITE_DIR);
@@ -234,97 +313,20 @@ void load_all_sprite() {
 }
 
 
-// Expects a Sprite_sheet
-// Sprite_id is the file_name
-// Adds this sprite_sheet to the Texture atlas
-//     example sprite_id: spr_player_5.png
-// Automatically assigns position for each individual sprite_sheet
-void sprite_add(const std::string sprite_file, int fps) {
-    
-    std::string actual_id = extract_sprite_name(sprite_file);
-    
-    // Check if sprite is already loaded
-    auto it = sprite_sheet_map.find(sprite_file);
-    if (it != sprite_sheet_map.end()) {
-        SDL_Log("Sprite {%s} already exists.", sprite_file.c_str());
-        return;
-    }
+void init_sprite_manager(SDL_Renderer* renderer) {
+    rend = renderer;
 
-    // Load Image file
-    SDL_Surface* sprite_sheet =  IMG_Load((std::string(SPRITE_DIR) + sprite_file).c_str());
-    if (!sprite_sheet) {
-        SDL_Log("Failed to load sprite sheet: {%s}", sprite_file.c_str());
-        return;
-    }
-
-    Sprite_sheet_data data = {};
-    data.sprite_id = actual_id;
-    data.fps = fps;
-    data.loop = true;
-    data.frame_count = extract_frame_count(sprite_file);
-
-    Uint16 ss_width = sprite_sheet->w;
-    Uint16 ss_height = sprite_sheet->h;
-    data.frame_size = { ss_width / data.frame_count, ss_height };
-
-    pack_sprite_sheet({ss_width, ss_height }, data.location);
-    sprite_sheet_map[actual_id] = data;
-
-    // Blit that surface to the Texture_Atlas
-    SDL_Rect dest = {
-        data.location.x(),
-        data.location.y(),
-        ss_width,
-        ss_height
-    };
-
-    SDL_BlitSurface(sprite_sheet, nullptr, surface_atlas, &dest);
-    SDL_DestroySurface(sprite_sheet);
-    SDL_Log("  > Sprite Loaded Succesfully. {%s}", data.sprite_id.c_str());
-    return;
+    reset();
+    load_all_sprite();
 }
 
 
-void draw_sprite(const std::string& sprite_id, Uint8 index, float rotation, 
-    Camera const cam, SDL_FRect rect) {
-
-    Vector2f r = world_to_screen(cam, {rect.x, rect.y});
-    rect.x = r.x();
-    rect.y = r.y();
-    SDL_FRect src = sprite_frame_at(sprite_id, index);
-
-    SDL_RenderTextureRotated(
-        rend,
-        texture_atlas,
-        &src, &rect,
-        rotation,
-        NULL,
-        SDL_FLIP_NONE  
-    );
+Sprite_sheet_data& sprite_get(const std::string& sprite_name) {
+    return sprite_sheet_map.at(hash_string(sprite_name));
 }
 
 
-void draw_sprite_raw(const std::string& sprite_id, Uint8 index, float rotation, SDL_FRect rect) {
-    SDL_FRect src = sprite_frame_at(sprite_id, index);
-
-    SDL_RenderTextureRotated(
-        rend,
-        texture_atlas,
-        &src, &rect,
-        rotation,
-        NULL,
-        SDL_FLIP_NONE  
-    );
-}
-
-
-void sprite_cleanup() {
-    SDL_DestroyTexture(texture_atlas);
-    SDL_DestroySurface(surface_atlas);
-}
-
-
-Sprite_sheet_data& sprite_get(const std::string& sprite_id) {
+Sprite_sheet_data& sprite_get(const Uint64 sprite_id) {
     return sprite_sheet_map.at(sprite_id);
 }
 

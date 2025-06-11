@@ -92,10 +92,29 @@ void generate_sprite_sheet(const std::string dir_p, const std::string output) {
     // Save as a Spritesheet file.
     IMG_SavePNG(sprite_sheet_surf, output.c_str());
     SDL_DestroySurface(sprite_sheet_surf);
-    SDL_Log("> UTIL > Sprite sheet generated. {%s}", output.c_str());
+    SDL_Log("> UTIL s> Sprite sheet generated. {%s}", output.c_str());
 }
 
-Uint32 extract_frame_count(const std::string& filename) {
+void str_toLower(std::string& str) {
+    for (auto& x : str) {x = tolower(x);}
+}
+
+uint64_t hash_string(const std::string& str) {
+    // p is a prime number
+    // m is a large prime number
+    long p = 31, m = (long) 1e9 + 9;
+
+    long hval = 0;
+    long pPow = 1;
+
+    for (int i = 0; i < str.length(); i++) {
+        hval = (hval + (str[i] - 'a' + 1)) * pPow % m;
+        pPow = (pPow * p) % m;
+    }
+    return hval;
+}
+
+uint32_t extract_frame_count(const std::string& filename) {
     std::regex frame_regex("spr_.*_(\\d+)\\.png$");
     std::smatch match;
     if (std::regex_match(filename, match, frame_regex)) {
@@ -104,6 +123,7 @@ Uint32 extract_frame_count(const std::string& filename) {
     return -1; // Unknown
 }
 
+// File name Format: spr_<name>_<frame_Count>.png
 std::string extract_sprite_name(const std::string& filename) {
     // Check that it starts with "spr_"
     if (filename.rfind("spr_", 0) != 0)
@@ -116,5 +136,7 @@ std::string extract_sprite_name(const std::string& filename) {
     if (end == std::string::npos || end <= start)
         return filename;
 
-    return filename.substr(start, end - start);
+    std::string res = filename.substr(start, end - start);\
+    str_toLower(res);
+    return res;
 }

@@ -7,14 +7,7 @@
 using namespace Eigen;
 
 #define MAX_VERTEX_COUNT UINT16_MAX
-/**
- * @brief Forward declaration of Entity struct.
- */
 struct Entity;
-
-/**
- * @brief Forward declaration of Camera struct.
- */
 struct Camera;
 
 /**
@@ -56,7 +49,7 @@ void render_batch_entity(const Entity& entity, const Camera& cam);
  * @param vertices Array of 4 vertices defining the sprite quad.
  * @param cam The camera used for rendering transformations.
  */
-void render_batch_sprite(std::string sprite_id, Uint8 index, float rotation, Vector2f scale, Uint16 depth, const std::array<Vector2f, 4>& vertices, const Camera& cam);
+void render_batch_sprite(const Uint64 sprite_id, Uint8 index, float rotation, Vector2f scale, Uint16 depth, const std::array<Vector2f, 4>& vertices, const Camera& cam);
 
 
 // =========== PRIMITIVE SHAPES =================== //

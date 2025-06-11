@@ -1,7 +1,6 @@
 #ifndef UTIL_HPP
 #define UTIL_HPP
 
-#include <SDL3/SDL.h>
 #include <string>
 #include <Eigen/Dense>
 using namespace Eigen;
@@ -45,15 +44,32 @@ void generate_sprite_sheet(const std::string dir_p, const std::string output);
 
 
 /**
+ * @brief Converts all characters in the input string to lowercase (in-place).
+ * 
+ * @param str The input string to be converted. The original string is modified.
+ * 
+ * @note
+ *   - Time complexity: O(n), where 'n' is the length of the string.
+ */
+void str_toLower(const std::string& str);
+
+
+// Use Polynomial rolling hash function, for this case
+// Generally used for Sprite_ID Generation
+// But can still be applied to anywhere
+uint64_t hash_string(const std::string& str);
+
+
+/**
  * @brief Extracts the frame count from a sprite sheet filename.
  * @param filename The filename to parse.
  * @return The number of frames in the sprite sheet.
  */
-Uint32 extract_frame_count(const std::string& filename);
+uint32_t extract_frame_count(const std::string& filename);
 
 
 /**
- * @brief Extracts the sprite name from a sprite sheet filename.
+ * @brief Extracts the sprite name from a sprite sheet filename --lowercase.
  * @param filename The filename to parse.
  * @return The sprite name as a string.
  */

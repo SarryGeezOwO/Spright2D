@@ -1,6 +1,7 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
+#include "geometry.hpp"
 #include "Eigen/Dense"
 using namespace Eigen;
 
@@ -94,12 +95,22 @@ float& cam_culling_margin();
  * @param world_position The world position to test.
  * @return True if the position is seen inside the camera view
  */
-bool camera_is_position_in(const Camera& cam, Vector2f world_position);
+bool camera_is_position_in(const Camera& cam, const Vector2f& world_position);
 
 
 /**
- * @brief Checks if a quad is inside the camera's bounding view
+ * @brief Checks if at least one vertex of a polygon is inside the camera bounds.
+ * 
+ * @param cam The camera object.
+ * @param polygon An array or vector of Vector2f representing the polygon vertices.
+ * @return true if at least one vertex is inside the camera bounds, false otherwise.
  */
-bool camera_is_quad_in(const Camera& cam, Vector4f const quad_bbox);
+template <size_t N>
+bool camera_is_polygon_in(const Camera& cam, const Polygon<N>& polygon) {
 
+    for (int i = 0; i < polygon.size(); i++) {
+        if (camera_is_position_in(cam, polygon[i])) return true;
+    }
+    return false;
+}
 #endif

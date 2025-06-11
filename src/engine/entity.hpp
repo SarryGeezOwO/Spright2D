@@ -119,20 +119,20 @@ public:
 /**
  * @brief Spawns a new entity with the given parameters.
  * 
- * @param sprite The sprite ID to use.
+ * @param sprite_name The sprite name to use (All letters are Lowercase).
  * @param pos The world position.
  * @param scale The scale factor.
  * @param rotation The rotation in degrees.
  * @param depth The rendering depth.
  * @return The ID of the spawned entity.
  */
-int entity_spawn(std::string sprite, Vector2f pos, Vector2f scale, float rotation, Uint16 depth);
+int entity_spawn(const std::string& sprite_name, Vector2f pos, Vector2f scale, float rotation, Uint16 depth);
 
 
 /**
  * @brief Spawns a new entity with the given parameters and pivot type.
  * 
- * @param sprite The sprite ID to use.
+ * @param sprite_name The sprite_name to use (All letters are Lowercase).
  * @param pos The world position.
  * @param scale The scale factor.
  * @param rotation The rotation in degrees.
@@ -140,7 +140,7 @@ int entity_spawn(std::string sprite, Vector2f pos, Vector2f scale, float rotatio
  * @param depth The rendering depth.
  * @return The ID of the spawned entity.
  */
-int entity_spawn(std::string sprite, Vector2f pos, Vector2f scale, float rotation, Pivot_Type pivot, Uint16 depth);
+int entity_spawn(const std::string& sprite_name, Vector2f pos, Vector2f scale, float rotation, Pivot_Type pivot, Uint16 depth);
 
 
 /**

@@ -11,18 +11,19 @@ static std::unordered_map<Uint16, Entity> entity_map;
 static Uint32 id_cursor = 0;
 
 // Return the assigned ID for this entity
-int entity_spawn(std::string sprite, Vector2f pos, Vector2f scale, float rotation, Uint16 depth) {
+int entity_spawn(const std::string& sprite_name, Vector2f pos, Vector2f scale, float rotation, Uint16 depth) {
     if (entity_map.size() >= MAX_ENTITIES) {
         return -1;
     }
 
+    Uint64 spr_id = hash_string(sprite_name);
     Entity ent = {};
     ent.id = id_cursor;
     ent.depth = depth;
     ent.position = pos;
     ent.rotation = rotation;
     ent.scale = scale;
-    ent.sprite = sprite_get(sprite);
+    ent.sprite = sprite_get(spr_id);
     ent.image_index = 0;
     entity_map[id_cursor] = ent; 
 
@@ -30,19 +31,20 @@ int entity_spawn(std::string sprite, Vector2f pos, Vector2f scale, float rotatio
 }
 
 // Return the assigned ID for this entity
-int entity_spawn(std::string sprite, Vector2f pos, Vector2f scale, float rotation, Pivot_Type pivot, Uint16 depth) {
+int entity_spawn(const std::string& sprite_name, Vector2f pos, Vector2f scale, float rotation, Pivot_Type pivot, Uint16 depth) {
     if (entity_map.size() >= MAX_ENTITIES) {
         return -1;
     }
 
     Entity ent = {};
+    Uint64 spr_id = hash_string(sprite_name);
     ent.pivot = pivot;
     ent.id = id_cursor;
     ent.depth = depth;
     ent.position = pos;
     ent.rotation = rotation;
     ent.scale = scale;
-    ent.sprite = sprite_get(sprite);
+    ent.sprite = sprite_get(spr_id);
     ent.image_index = 0;
     entity_map[id_cursor] = ent; 
 
@@ -55,7 +57,7 @@ void entity_destroy(Uint16 id) {
 }
 
 
-// Performance shit from here
+// Bad Performance shit from here
 /*
 void entity_render_all(SDL_Renderer* rend, Camera &cam) {
     if (entity_map.empty()) return;

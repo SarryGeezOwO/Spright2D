@@ -1,4 +1,5 @@
 #include "camera.hpp"
+#include "geometry.hpp"
 #include "Eigen/Dense"
 using namespace Eigen;
 
@@ -24,24 +25,8 @@ Vector2f screen_to_world(const Camera& cam, Vector2f const screen_position) {
     return screen_position + cam.position;
 }
 
-
-bool camera_is_quad_in(const Camera& cam, Vector4f const quad_bbox) {
-    Vector4f bbox = cam.bbox();
-    bbox.x() -= culling_margin;
-    bbox.y() -= culling_margin;
-    bbox.z() += culling_margin;
-    bbox.w() += culling_margin;
-    return (
-        quad_bbox.z() < bbox.x() ||
-        quad_bbox.x() > bbox.z() ||
-        quad_bbox.w() < bbox.y() ||
-        quad_bbox.y() > bbox.w()
-    );
-}
-
-
 // Return True is given position is seen inside the camera view
-bool camera_is_position_in(const Camera& cam, Vector2f world_position) {
+bool camera_is_position_in(const Camera& cam, const Vector2f& world_position) {
     Vector4f bbox = cam.bbox();
     bbox.x() -= culling_margin;
     bbox.y() -= culling_margin;

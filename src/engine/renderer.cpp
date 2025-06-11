@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include "geometry.hpp"
 #include "camera.hpp"
 #include "entity.hpp"
 #include "sprite.hpp"
@@ -39,13 +40,14 @@ void add_quad_to_batch(VertexBuffer& buf, SDL_Vertex v0, SDL_Vertex v1, SDL_Vert
 
 void render_batch_entity(const Entity& entity, const Camera& cam) {
     // Render if at least one vertex is seenable
-    if (camera_is_quad_in(cam, entity.bbox())) return;
+    Polygon<4> ent_shape(entity.transformed_vertices);
+    if (!camera_is_polygon_in(cam, ent_shape)) return;
 
     SDL_Vertex v0, v1, v2, v3;
-    Vector2f tl = world_to_screen(cam, entity.transformed_vertices[0]);
-    Vector2f tr = world_to_screen(cam, entity.transformed_vertices[1]);
-    Vector2f br = world_to_screen(cam, entity.transformed_vertices[2]);
-    Vector2f bl = world_to_screen(cam, entity.transformed_vertices[3]);
+    Vector2f tl = world_to_screen(cam, ent_shape[0]);
+    Vector2f tr = world_to_screen(cam, ent_shape[1]);
+    Vector2f br = world_to_screen(cam, ent_shape[2]);
+    Vector2f bl = world_to_screen(cam, ent_shape[3]);
     Vector4f uv = sprite_frame_at_uv(entity.sprite.sprite_id, entity.image_index);
 
     // Top left
@@ -79,23 +81,17 @@ void render_batch_entity(const Entity& entity, const Camera& cam) {
 }
 
 
-void render_batch_sprite(std::string sprite_id, Uint8 index, float rotation, Vector2f scale, 
+void render_batch_sprite(const Uint64 sprite_id, Uint8 index, float rotation, Vector2f scale, 
     Uint16 depth, const std::array<Vector2f, 4>& vertices, const Camera& cam) {
-    Vector4f bbox = {
-        vertices[0].x(),
-        vertices[0].y(),
-        vertices[2].x(),
-        vertices[2].y()
-    };
-
     // Render if at least one vertex is seenable
-    if (camera_is_quad_in(cam, bbox)) return;
+    Polygon<4> ent_shape(vertices);
+    if (!camera_is_polygon_in(cam, ent_shape)) return;
 
     SDL_Vertex v0, v1, v2, v3;
-    Vector2f tl = world_to_screen(cam, vertices[0]);
-    Vector2f tr = world_to_screen(cam, vertices[1]);
-    Vector2f br = world_to_screen(cam, vertices[2]);
-    Vector2f bl = world_to_screen(cam, vertices[3]);
+    Vector2f tl = world_to_screen(cam, ent_shape[0]);
+    Vector2f tr = world_to_screen(cam, ent_shape[1]);
+    Vector2f br = world_to_screen(cam, ent_shape[2]);
+    Vector2f bl = world_to_screen(cam, ent_shape[3]);
     Vector4f uv = sprite_frame_at_uv(sprite_id, index);
 
     // TODO: apply transformation matrix here (rotation and Scale)
