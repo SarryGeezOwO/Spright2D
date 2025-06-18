@@ -1,6 +1,7 @@
 #ifndef GEOMETRY_HPP
 #define GEOMETRY_HPP
 
+#include <vector>
 #include <Eigen/Dense>
 using namespace Eigen;
 
@@ -26,5 +27,10 @@ struct Polygon {
         return N; 
     }
 };
+
+template <size_t N>
+std::vector<int> triangulate(Polygon<N> points) {
+    return {0, 0, 0};
+}
 
 #endif

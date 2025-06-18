@@ -5,12 +5,13 @@
 #include "sprite.hpp"
 
 #include <map>
+#include <bits/stdc++.h>
 #include <SDL3/SDL.h>
 #include <Eigen/Dense>
 using namespace Eigen;
 
 static SDL_Renderer* renderer = nullptr;
-static std::map<Uint16, VertexBuffer> render_batches;  // Depth, VertexBuffer
+static std::map<Uint16, std::pair<VertexBuffer, VertexBuffer>> render_batches;  // Depth, <VertexBuffer(Textured), VertexBuffer(Primitive)>
 static int prev_rend_c = 0;
 static int rendered_c = 0;
 
@@ -19,21 +20,44 @@ void render_init(SDL_Renderer* rend) {
     renderer = rend;
 }
 
-void add_quad_to_batch(VertexBuffer& buf, SDL_Vertex v0, SDL_Vertex v1, SDL_Vertex v2, SDL_Vertex v3) {
-    Uint16& c   = buf.vert_count;
-    Uint16& i   = buf.index_count;
 
-    buf.indices[i++] = c + 0;
-    buf.indices[i++] = c + 1;
-    buf.indices[i++] = c + 2;
-    buf.indices[i++] = c + 2;
-    buf.indices[i++] = c + 3;
-    buf.indices[i++] = c + 0;
+void render_submit_vertices(const SDL_Vertex vertices[], const std::vector<int>& indices, int vert_count, Uint16 depth, bool is_primitive) {
+    int idx_count = indices.size();
+    std::pair<VertexBuffer, VertexBuffer>& buf = render_batches[depth];
 
-    buf.vertices[c++] = v0;
-    buf.vertices[c++] = v1;
-    buf.vertices[c++] = v2;
-    buf.vertices[c++] = v3;
+    if (is_primitive) 
+    {
+        Uint16& cc   = buf.second.vert_count;
+        Uint16& ii   = buf.second.index_count;
+        // For each indices
+        for (int i = 0; i < indices.size(); i++) {
+            buf.second.indices[ii++] = cc + indices[i];
+        }
+
+        // For each vertex
+        for (int i = 0; i < vert_count; i++) {
+            buf.second.vertices[cc++] = vertices[i];
+        }
+    }
+    else 
+    {
+        // literally just a quad, hopefully lol (no test cases aahhh type shit...)
+        Uint16& c   = buf.first.vert_count;
+        Uint16& i   = buf.first.index_count;
+
+        buf.first.indices[i++] = c + 0;
+        buf.first.indices[i++] = c + 1;
+        buf.first.indices[i++] = c + 2;
+        buf.first.indices[i++] = c + 2;
+        buf.first.indices[i++] = c + 3;
+        buf.first.indices[i++] = c + 0;
+
+        buf.first.vertices[c++] = vertices[0];
+        buf.first.vertices[c++] = vertices[1];
+        buf.first.vertices[c++] = vertices[2];
+        buf.first.vertices[c++] = vertices[3];
+    }
+
     rendered_c++;
 }
 
@@ -43,7 +67,7 @@ void render_batch_entity(const Entity& entity, const Camera& cam) {
     Polygon<4> ent_shape(entity.transformed_vertices);
     if (!camera_is_polygon_in(cam, ent_shape)) return;
 
-    SDL_Vertex v0, v1, v2, v3;
+    SDL_Vertex vertices[4];
     Vector2f tl = world_to_screen(cam, ent_shape[0]);
     Vector2f tr = world_to_screen(cam, ent_shape[1]);
     Vector2f br = world_to_screen(cam, ent_shape[2]);
@@ -51,33 +75,35 @@ void render_batch_entity(const Entity& entity, const Camera& cam) {
     Vector4f uv = sprite_frame_at_uv(entity.sprite.sprite_id, entity.image_index);
 
     // Top left
-    v0.position.x = tl.x();
-    v0.position.y = tl.y();
-    v0.tex_coord.x = uv.x();
-    v0.tex_coord.y = uv.y();
-    v0.color = {1, 1, 1, 1}; 
+    vertices[0].position.x = tl.x();
+    vertices[0].position.y = tl.y();
+    vertices[0].tex_coord.x = uv.x();
+    vertices[0].tex_coord.y = uv.y();
+    vertices[0].color = {1, 1, 1, 1}; 
 
     // Top Right
-    v1.position.x = tr.x();
-    v1.position.y = tr.y();
-    v1.tex_coord.x = uv.z();
-    v1.tex_coord.y = uv.y();
-    v1.color = {1, 1, 1, 1};
+    vertices[1].position.x = tr.x();
+    vertices[1].position.y = tr.y();
+    vertices[1].tex_coord.x = uv.z();
+    vertices[1].tex_coord.y = uv.y();
+    vertices[1].color = {1, 1, 1, 1};
 
     // Bottom right
-    v2.position.x = br.x();
-    v2.position.y = br.y();
-    v2.tex_coord.x = uv.z();
-    v2.tex_coord.y = uv.w();
-    v2.color = {1, 1, 1, 1};
+    vertices[2].position.x = br.x();
+    vertices[2].position.y = br.y();
+    vertices[2].tex_coord.x = uv.z();
+    vertices[2].tex_coord.y = uv.w();
+    vertices[2].color = {1, 1, 1, 1};
     
     // Bottom left
-    v3.position.x = bl.x();
-    v3.position.y = bl.y();
-    v3.tex_coord.x = uv.x();
-    v3.tex_coord.y = uv.w();
-    v3.color = {1, 1, 1, 1};
-    add_quad_to_batch(render_batches[entity.depth], v0, v1, v2, v3);
+    vertices[3].position.x = bl.x();
+    vertices[3].position.y = bl.y();
+    vertices[3].tex_coord.x = uv.x();
+    vertices[3].tex_coord.y = uv.w();
+    vertices[3].color = {1, 1, 1, 1};
+
+    std::vector<int> indices;
+    render_submit_vertices(vertices, indices, 4, entity.depth, false);
 }
 
 
@@ -87,7 +113,7 @@ void render_batch_sprite(const Uint64 sprite_id, Uint8 index, float rotation, Ve
     Polygon<4> ent_shape(vertices);
     if (!camera_is_polygon_in(cam, ent_shape)) return;
 
-    SDL_Vertex v0, v1, v2, v3;
+    SDL_Vertex vertices_sdl[4];
     Vector2f tl = world_to_screen(cam, ent_shape[0]);
     Vector2f tr = world_to_screen(cam, ent_shape[1]);
     Vector2f br = world_to_screen(cam, ent_shape[2]);
@@ -96,35 +122,36 @@ void render_batch_sprite(const Uint64 sprite_id, Uint8 index, float rotation, Ve
 
     // TODO: apply transformation matrix here (rotation and Scale)
 
-
     // Top left
-    v0.position.x = tl.x();
-    v0.position.y = tl.y();
-    v0.tex_coord.x = uv.x();
-    v0.tex_coord.y = uv.y();
-    v0.color = {1, 0, 1, 1}; 
+    vertices_sdl[0].position.x = tl.x();
+    vertices_sdl[0].position.y = tl.y();
+    vertices_sdl[0].tex_coord.x = uv.x();
+    vertices_sdl[0].tex_coord.y = uv.y();
+    vertices_sdl[0].color = {1, 1, 1, 1}; 
 
     // Top Right
-    v1.position.x = tr.x();
-    v1.position.y = tr.y();
-    v1.tex_coord.x = uv.z();
-    v1.tex_coord.y = uv.y();
-    v1.color = {1, 1, 0, 1};
+    vertices_sdl[1].position.x = tr.x();
+    vertices_sdl[1].position.y = tr.y();
+    vertices_sdl[1].tex_coord.x = uv.z();
+    vertices_sdl[1].tex_coord.y = uv.y();
+    vertices_sdl[1].color = {1, 1, 1, 1};
 
     // Bottom right
-    v2.position.x = br.x();
-    v2.position.y = br.y();
-    v2.tex_coord.x = uv.z();
-    v2.tex_coord.y = uv.w();
-    v2.color = {0, 1, 1, 1};
+    vertices_sdl[2].position.x = br.x();
+    vertices_sdl[2].position.y = br.y();
+    vertices_sdl[2].tex_coord.x = uv.z();
+    vertices_sdl[2].tex_coord.y = uv.w();
+    vertices_sdl[2].color = {1, 1, 1, 1};
     
     // Bottom left
-    v3.position.x = bl.x();
-    v3.position.y = bl.y();
-    v3.tex_coord.x = uv.x();
-    v3.tex_coord.y = uv.w();
-    v3.color = {1, 1, 1, 1};
-    add_quad_to_batch(render_batches[depth], v0, v1, v2, v3);
+    vertices_sdl[3].position.x = bl.x();
+    vertices_sdl[3].position.y = bl.y();
+    vertices_sdl[3].tex_coord.x = uv.x();
+    vertices_sdl[3].tex_coord.y = uv.w();
+    vertices_sdl[3].color = {1, 1, 1, 1};
+
+    std::vector<int> indices;
+    render_submit_vertices(vertices_sdl, indices, 4, depth, false);
 }
 
 
@@ -135,31 +162,33 @@ void render_batch_all(bool debug) {
     for (auto& [depth, batch] : render_batches) {
 
         // Render using the texture corresponding to this depth batch
-        bool f = SDL_RenderGeometry(
+        SDL_RenderGeometry(         // Textured
             renderer, 
             sprite_get_atlas(), 
-            batch.vertices, 
-            batch.vert_count, 
-            batch.indices, 
-            batch.index_count
+            batch.first.vertices, 
+            batch.first.vert_count, 
+            batch.first.indices, 
+            batch.first.index_count
         );
 
-        if (debug) {
-            SDL_FPoint debug_points[batch.index_count];
-            for (int i = 0; i < batch.index_count; i++) {
-                debug_points[i] = batch.vertices[batch.indices[i]].position;
-            }
-            SDL_RenderPoints(renderer, debug_points, batch.index_count);
-        }
-
-        if (!f) {
-            SDL_Log("Vert_count: %d", batch.vert_count);
-            SDL_Log("Idx_count: %d", batch.index_count);
-            SDL_Log("Error: {%s}", SDL_GetError());
-        }
+        SDL_RenderGeometry(         // Primitives
+            renderer, 
+            sprite_get_atlas(), 
+            batch.second.vertices, 
+            batch.second.vert_count, 
+            batch.second.indices, 
+            batch.second.index_count
+        );
     }
 }
 
+void set_color(const SDL_Color& color) {
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+}
+
+void set_color(const SDL_FColor& color) {
+    SDL_SetRenderDrawColorFloat(renderer, color.r, color.g, color.b, color.a);
+}
 
 void render_batch_clear_all() {
     render_batches.clear();

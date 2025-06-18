@@ -32,7 +32,7 @@ bool input_handle_event() {
 
             case SDL_EVENT_MOUSE_BUTTON_UP:
                 if (event.button.button == SDL_BUTTON_LEFT) event_flags.set(MOUSE_LEFT_PRESSED, false);
-                if (event.button.button == SDL_BUTTON_RIGHT) event_flags.set(MOUSE_RIGHT_PRESSED, true);
+                if (event.button.button == SDL_BUTTON_RIGHT) event_flags.set(MOUSE_RIGHT_PRESSED, false);
                 break;
 
             case SDL_EVENT_KEY_DOWN:

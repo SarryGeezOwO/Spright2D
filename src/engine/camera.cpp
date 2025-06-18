@@ -3,7 +3,7 @@
 #include "Eigen/Dense"
 using namespace Eigen;
 
-static float culling_margin = 100;
+static float culling_margin = 200;
 
 float& cam_culling_margin() {
     return culling_margin;

@@ -2,6 +2,8 @@
 #define RENDERER_HPP
 
 #include "../utils/util.hpp"
+#include "geometry.hpp"
+#include <vector>
 #include <SDL3/SDL.h>
 #include <Eigen/Dense>
 using namespace Eigen;
@@ -12,6 +14,7 @@ struct Camera;
 
 /**
  * @brief Stores vertex and index data for rendering.
+ *        This buffer represents a whole depth
  */
 struct VertexBuffer {
     SDL_Vertex  vertices[MAX_VERTEX_COUNT];   /**< Array of vertices for rendering. */
@@ -27,6 +30,12 @@ struct VertexBuffer {
  * @param rend Pointer to the SDL_Renderer to use for all drawing.
  */
 void render_init(SDL_Renderer* rend);
+
+
+// ALl draw calls will submit their vertices, appropriately
+// is_primitive if false, tells this function that a quad is requested because it needs texture
+// meaning primitive draw calls can't support texutes... I know I am bad at this shit
+void render_submit_vertices(const SDL_Vertex vertices[], const std::vector<int>& indices, int vert_count, Uint16 depth, bool is_primitive); 
 
 
 /**
@@ -78,17 +87,6 @@ void render_rectangle(Vector2f position, Vector2f size, Pivot_Type pivot, Uint16
 
 
 /**
- * @brief Renders a triangle defined by three vertices.
- * 
- * @param v0 First vertex.
- * @param v1 Second vertex.
- * @param v2 Third vertex.
- * @param depth Rendering depth.
- */
-void render_triangle(Vector2f v0, Vector2f v1, Vector2f v2, Uint16 depth);
-
-
-/**
  * @brief Renders a line between two points with specified thickness.
  * 
  * @param a Start point.
@@ -99,17 +97,15 @@ void render_triangle(Vector2f v0, Vector2f v1, Vector2f v2, Uint16 depth);
 void render_line(Vector2f a, Vector2f b, int thickness, Uint16 depth);
 
 
-// ========== CUSTOM SHAPES ==================== //
+template<size_t N>
+void render_polygon(Polygon<N> polygon, Uint16 depth) {
 
+}
 
-/**
- * @brief Renders a custom shape from an array of SDL_Vertex.
- * 
- * @param vertices Pointer to the array of vertices (must be terminated or sized elsewhere).
- * @param depth Rendering depth.
- */
-void render_shape(SDL_Vertex* vertices, Uint16 depth);
+// =========================================================== //
 
+void set_color(const SDL_Color& color);
+void set_color(const SDL_FColor& color);
 
 /**
  * @brief Draws all VertexBuffers loaded from the batch, ordered by depth.
