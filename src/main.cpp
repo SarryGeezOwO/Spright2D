@@ -1,17 +1,35 @@
+/*
+
+AUTHOR: SarryGeezOWO (https://github.com/SarryGeezOwO)
+DATE: June / 19 / 2025
+
+This is my first ever big 2D-game engine project, This application is not the best
+in terms of code readability or optimizations, as well as the features. This is
+solely made for my educational purposes as this type of topic is rarely discussed 
+on schools. (Huge Skill issue ngl 😞)
+
+*/
+
 #include <iostream>
 #include <string>
 #include <bitset>
 #include <chrono>
 #include <filesystem>
 
-// External Libraries
+// External Libraries ========
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3_image/SDL_image.h>
+
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_sdl3.h>
+#include <imgui/imgui_impl_sdlrenderer3.h>
+
 #include <Eigen/Dense>
 using namespace Eigen;
 
-// User define
+// User define ========
+#include "debug/debugUI.hpp"
 #include "engine/camera.hpp"
 #include "engine/renderer.hpp"
 #include "engine/sprite.hpp"
@@ -19,12 +37,13 @@ using namespace Eigen;
 #include "core/input.hpp"
 #include "utils/util.hpp"
 
-// Constants
+// Constants ========
 #define FPS 60
 #define MS_PER_FRAME 1000 / FPS
 #define WIN_TITLE "Spright2D v.1.0"
-#define WIN_WIDTH 1000
-#define WIN_HEIGHT 720
+#define WIN_WIDTH 1920
+#define WIN_HEIGHT 1080
+#define STAT_COUNT 7
 
 // Struct for handling state for each scene
 struct global_state {
@@ -41,6 +60,9 @@ const int GRAVITY = 5;
 // =========================== RESOURCES =====================================
 SDL_Window* win;
 SDL_Renderer* renderer;
+SDL_Event event;
+UIManager ui_manager;
+char dbg_stats[STAT_COUNT][64]; // 64 bytes per line, tweak as needed
 
 bool game_running = true;   // Stop or Continue Game loop
 bool invokeStart = true;    // Resets every Scene Change, on True call start
@@ -56,7 +78,7 @@ Camera camera = {
 // Cache sprite IDs
 Uint64 spr_player = hash_string("player");
 
-// Helper Functions
+// Function Declarations
 void app_quit();
 void config_sprite();
 void load_entities();
@@ -80,12 +102,20 @@ void init() {
     }
 
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
-
     renderer = SDL_CreateRenderer(win, NULL);
     if (renderer == nullptr) {
         SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Failed to create renderer.");
         app_quit();
     }
+
+    // Initialize ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGuiIO &io = ImGui::GetIO(); (void)io;
+
+    ImGui_ImplSDL3_InitForSDLRenderer(win, renderer);
+    ImGui_ImplSDLRenderer3_Init(renderer);
 
     // Initialization of System (Peak shit🙏🙏)
     init_sprite_manager(renderer);   // Load all sprite_sheets
@@ -122,14 +152,23 @@ void update(global_state& gs, local_state& ls) {
     Vector2f m_w = screen_to_world(camera, mouse_pos());
 
     // Entity Clicking
+    int ent_id = -1;
     for (auto& [key, ent] : entity_get_map()) {
         int w = ent.scale.x() * ent.sprite.frame_size.x();
-        if (distance(m_w, ent.position) < w) {
-            ent.c_blend = {1, 1, 0, 1};
+        if (distance(m_w, ent.position) < w && is_event_active(MOUSE_RIGHT_PRESSED) && ent_id == -1) {
+            ent_id = ent.id;
         }
-        else {
-            ent.c_blend = {1, 1, 1, 1};
-        }
+        else {ent.c_blend = {1, 1, 1, 1};}
+    }
+
+    if (ent_id != -1) {
+        Entity& e = entity_get(ent_id);
+        debug_entity(&e);
+    }
+
+    Entity* dbg_ent = &debug_selected_ent();
+    if (dbg_ent != nullptr) {
+        dbg_ent->c_blend = {1, 1, 0, 1};
     }
     
     if (is_event_active(MOUSE_LEFT_PRESSED)) {
@@ -161,8 +200,8 @@ void update(global_state& gs, local_state& ls) {
     id = (check_key(SDL_SCANCODE_Q) ? "cat" : id);
 
     if (id != "none") {
-        entity_spawn(id, {m_w.x(), m_w.y()}, {1, 1}, 0, MIDDLE_CENTER, 100);
-        spwn_time = 50;
+        entity_spawn(id, {m_w.x(), m_w.y()}, {1, 1}, 0, TOP_CENTER, 100);
+        spwn_time = 30;
     }
 }
 
@@ -173,23 +212,17 @@ void render(const global_state gs, const local_state ls) {
 }
 
 // Debug shit
-void debug_draw() {
+void debug_update() {
     if (!is_event_active(DEBUG_MODE)) return;
-    SDL_RenderDebugTextFormat(renderer, 20, 20, "FPS: %.2f", current_fps);
-    SDL_RenderDebugTextFormat(renderer, 20, 40, "Sprite Loaded: %d", sprite_count());
-    SDL_RenderDebugTextFormat(renderer, 20, 60, "Entity Count: %d", entity_count());
-    SDL_RenderDebugTextFormat(renderer, 20, 80, "Rendered: %d", rendered_count());
-    SDL_RenderDebugTextFormat(renderer, 20,100, "Spawn time: %d", spwn_time);
+    snprintf(dbg_stats[0], 64, "FPS: %.2f", current_fps);
+    snprintf(dbg_stats[1], 64, "Sprite Loaded: %d", sprite_count());
+    snprintf(dbg_stats[2], 64, "Entity Count: %d", entity_count());
+    snprintf(dbg_stats[3], 64, "Rendered: %d", rendered_count());
+    snprintf(dbg_stats[4], 64, "Spawn time: %d", spwn_time);
 
-    // Vertical
-    Vector2f vl_s = world_to_screen(camera, {0, -10});
-    Vector2f vl_e = world_to_screen(camera, {0, 10});
-    SDL_RenderLine(renderer, vl_s.x(), vl_s.y(), vl_e.x(), vl_e.y());
-
-    // Horizontal
-    Vector2f hl_s = world_to_screen(camera, {-10, 0});
-    Vector2f hl_e = world_to_screen(camera, {10, 0});
-    SDL_RenderLine(renderer, hl_s.x(), hl_s.y(), hl_e.x(), hl_e.y());
+    const char* dm = is_event_active(DEBUG_MODE) ? "true" : "false";
+    snprintf(dbg_stats[5], 64, "Debug Mode: %s", dm);
+    snprintf(dbg_stats[6], 64, "Camera Pos: %.2f, %.2f", camera.x(), camera.y());
 }
 
 
@@ -227,10 +260,11 @@ int main(int argc, char* argv[]) {
         lag += delta_time;
 
         // Lag Compensation
-        game_running = input_handle_event();
+        game_running = input_handle_event(&event);
         while (lag >= MS_PER_FRAME)
         {
             update(gs, ls);
+            debug_update();
             lag -= MS_PER_FRAME; 
         }
  
@@ -244,15 +278,22 @@ int main(int argc, char* argv[]) {
         }
 
         // Rendering
+        gui_draw_ready(ui_manager);
+        debug_header(dbg_stats, STAT_COUNT);
+        if (is_event_active(DEBUG_MODE)) {
+            ui_manager.render();
+        }
+        ImGui::Render();
+
+        // Render Reset
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Always reset back to white
-
-        debug_draw();
         render(gs, ls);
         
         // Renders all vertex buffers with texture i.e, An Entity lol
         render_batch_all(true);
+        ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer); 
 
         // Frame time
@@ -279,6 +320,11 @@ void app_quit() {
     sprite_cleanup();
     if (win != nullptr) SDL_DestroyWindow(win);
     if (renderer != nullptr) SDL_DestroyRenderer(renderer);
+
+    // ImGui
+    ImGui_ImplSDL3_Shutdown();
+    ImGui_ImplSDLRenderer3_Shutdown();
+    ImGui::DestroyContext();
 
     SDL_Log("Exiting program...");
     SDL_Quit();

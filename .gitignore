@@ -7,6 +7,7 @@ TODO.txt
 bin/Spright2D.exe
 bin/Texture_atlas.png
 bin/assets/temp/
+bin/imgui.ini
 
 # Ignore C++ object files
 obj/

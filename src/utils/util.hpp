@@ -23,6 +23,9 @@ enum Pivot_Type {
 Vector2f get_pivot_offset(Pivot_Type pivot_type, const Vector2f& size);
 
 
+const char* get_pivot_name(Pivot_Type pivot);
+
+
 /**
  * @brief Generates a sprite sheet from individual frames.
  *

@@ -17,9 +17,10 @@ enum EVENT_FLAG {
 
 /**
  * @brief Handles input events and updates event flags.
+ * @param event the SDL_Event to use
  * @return False if the application should quit, true otherwise.
  */
-bool input_handle_event();
+bool input_handle_event(SDL_Event* event);
 
 
 /**

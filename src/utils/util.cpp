@@ -44,6 +44,23 @@ Vector2f get_pivot_offset(Pivot_Type pivot_type, const Vector2f& size) {
     return Vector2f(x * size.x(), y * size.y());
 }
 
+
+const char* get_pivot_name(Pivot_Type pivot) {
+    switch (pivot) {
+        case TOP_LEFT:        return "Top Left";
+        case TOP_CENTER:      return "Top Center";
+        case TOP_RIGHT:       return "Top Right";
+        case MIDDLE_LEFT:     return "Middle Left";
+        case MIDDLE_CENTER:   return "Middle Center";
+        case MIDDLE_RIGHT:    return "Middle Right";
+        case BOTTOM_LEFT:     return "Bottom Left";
+        case BOTTOM_CENTER:   return "Bottom Center";
+        case BOTTOM_RIGHT:    return "Bottom Right";
+    }
+    return "Custom";
+}
+
+
 void generate_sprite_sheet(const std::string dir_p, const std::string output) {
     // check for folder existance
     DIR* dir = opendir(dir_p.c_str());
