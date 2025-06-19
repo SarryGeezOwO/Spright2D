@@ -91,4 +91,13 @@ float deg_to_rad(float deg);
  */
 float rad_to_deg(float rad);
 
+
+/**
+ * @brief Returns the distance between two points.
+ * @param a Starting point.
+ * @param b Target point.
+ * @return the distance in float.
+ */
+float distance(const Vector2f& a, const Vector2f& b);
+
 #endif

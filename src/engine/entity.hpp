@@ -31,6 +31,7 @@ public:
     Uint64 last_frame_time;          /**< Tracking time for FPS. */
     std::array<Vector2f, 4> vertices;               /**< Original points of this entity (no rotation/scale). */
     std::array<Vector2f, 4> transformed_vertices;   /**< Vertices with applied rotation and scale. */
+    SDL_FColor c_blend = {1, 1, 1, 1};              /**< Optional Color blending option, defaults to White*/
 
     // Transform
     Uint16 depth;                    /**< Entity depth draw, defaults to 100. */

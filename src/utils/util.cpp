@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <regex>
+#include <cmath>
 #include "util.hpp"
 #include <Eigen/Dense>
 using namespace Eigen;
@@ -16,6 +17,12 @@ float deg_to_rad(float deg) {
 
 float rad_to_deg(float rad) {
     return rad * (180.0f / PI);
+}
+
+float distance(const Vector2f& a, const Vector2f& b) {
+    return sqrtf(
+        powf(b.x() - a.x(), 2) + powf(b.y() - a.y(), 2)
+    );
 }
 
 Vector2f get_pivot_offset(Pivot_Type pivot_type, const Vector2f& size) {

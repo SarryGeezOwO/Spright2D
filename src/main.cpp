@@ -116,9 +116,21 @@ void start() {
 }
 
 // Runs per frame =====================================================================
+int spwn_time = 0;
 void update(global_state& gs, local_state& ls) {
     /* CODE */
     Vector2f m_w = screen_to_world(camera, mouse_pos());
+
+    // Entity Clicking
+    for (auto& [key, ent] : entity_get_map()) {
+        int w = ent.scale.x() * ent.sprite.frame_size.x();
+        if (distance(m_w, ent.position) < w) {
+            ent.c_blend = {1, 1, 0, 1};
+        }
+        else {
+            ent.c_blend = {1, 1, 1, 1};
+        }
+    }
     
     if (is_event_active(MOUSE_LEFT_PRESSED)) {
         Entity& e = entity_get(0);
@@ -138,13 +150,19 @@ void update(global_state& gs, local_state& ls) {
     if (check_key(SDL_SCANCODE_A)) camera.move({-cam_spd,  0        });
     if (check_key(SDL_SCANCODE_S)) camera.move({0       ,  cam_spd  });
     if (check_key(SDL_SCANCODE_D)) camera.move({cam_spd ,  0        });
-
+    
     // TEST Spawn on mouse position
+    if (spwn_time > 0) {
+        spwn_time -= delta_time;
+        return;
+    }
+
     std::string id = (check_key(SDL_SCANCODE_E) ? "enemy" : "none");
     id = (check_key(SDL_SCANCODE_Q) ? "cat" : id);
 
     if (id != "none") {
         entity_spawn(id, {m_w.x(), m_w.y()}, {1, 1}, 0, MIDDLE_CENTER, 100);
+        spwn_time = 50;
     }
 }
 
@@ -158,9 +176,10 @@ void render(const global_state gs, const local_state ls) {
 void debug_draw() {
     if (!is_event_active(DEBUG_MODE)) return;
     SDL_RenderDebugTextFormat(renderer, 20, 20, "FPS: %.2f", current_fps);
-    SDL_RenderDebugTextFormat(renderer, 20, 40, "Sprite Count: %d", sprite_count());
+    SDL_RenderDebugTextFormat(renderer, 20, 40, "Sprite Loaded: %d", sprite_count());
     SDL_RenderDebugTextFormat(renderer, 20, 60, "Entity Count: %d", entity_count());
     SDL_RenderDebugTextFormat(renderer, 20, 80, "Rendered: %d", rendered_count());
+    SDL_RenderDebugTextFormat(renderer, 20,100, "Spawn time: %d", spwn_time);
 
     // Vertical
     Vector2f vl_s = world_to_screen(camera, {0, -10});

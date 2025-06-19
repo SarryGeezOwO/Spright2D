@@ -79,28 +79,28 @@ void render_batch_entity(const Entity& entity, const Camera& cam) {
     vertices[0].position.y = tl.y();
     vertices[0].tex_coord.x = uv.x();
     vertices[0].tex_coord.y = uv.y();
-    vertices[0].color = {1, 1, 1, 1}; 
+    vertices[0].color = entity.c_blend; 
 
     // Top Right
     vertices[1].position.x = tr.x();
     vertices[1].position.y = tr.y();
     vertices[1].tex_coord.x = uv.z();
     vertices[1].tex_coord.y = uv.y();
-    vertices[1].color = {1, 1, 1, 1};
+    vertices[1].color = entity.c_blend;
 
     // Bottom right
     vertices[2].position.x = br.x();
     vertices[2].position.y = br.y();
     vertices[2].tex_coord.x = uv.z();
     vertices[2].tex_coord.y = uv.w();
-    vertices[2].color = {1, 1, 1, 1};
+    vertices[2].color = entity.c_blend;
     
     // Bottom left
     vertices[3].position.x = bl.x();
     vertices[3].position.y = bl.y();
     vertices[3].tex_coord.x = uv.x();
     vertices[3].tex_coord.y = uv.w();
-    vertices[3].color = {1, 1, 1, 1};
+    vertices[3].color = entity.c_blend;
 
     std::vector<int> indices;
     render_submit_vertices(vertices, indices, 4, entity.depth, false);
